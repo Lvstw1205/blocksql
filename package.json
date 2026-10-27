@@ -1,6 +1,6 @@
 {
   "name": "blocksql",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Drop in a spreadsheet, snap Scratch-style blocks together, get SQL — with built-in query checks. English and Korean UI.",
   "keywords": [
     "sql",
@@ -14,7 +14,10 @@
     "electron",
     "data"
   ],
-  "author": "Lvstw1205",
+  "author": {
+    "name": "Lvstw1205",
+    "email": "339281369+Lvstw1205@users.noreply.github.com"
+  },
   "license": "MIT",
   "private": true,
   "repository": {
