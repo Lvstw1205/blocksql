@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>SQL 입문부터 실무까지 — BlockSQL 가이드</title>
+<style>
+  @page { size: A4; margin: 18mm 17mm 20mm; }
+  :root { --ink: #1d1d22; --muted: #6b6b75; --line: #e3e3e0; --accent: #2f6fed; --code: #f5f5f3;
+          --l1: #16a34a; --l2: #2f6fed; --l3: #9333ea; --l4: #1f2937; }
+  * { box-sizing: border-box; }
+  body { font: 10.4pt/1.62 "Apple SD Gothic Neo", "Pretendard", "Malgun Gothic", -apple-system, sans-serif; color: var(--ink); margin: 0; }
+  h1, h2, h3 { line-height: 1.3; }
+  h1 { font-size: 22pt; margin: 0 0 4mm; }
+  h2 { font-size: 14.5pt; margin: 9mm 0 3mm; padding-top: 2mm; border-top: 1px solid var(--line); break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 6mm 0 2mm; break-after: avoid; }
+  p { margin: 0 0 2.6mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin: 0.6mm 0; }
+  code { font: 9pt "SF Mono", Menlo, Consolas, monospace; background: var(--code); padding: 0.2mm 1.2mm; border-radius: 1mm; }
+  pre { font: 8.9pt/1.5 "SF Mono", Menlo, Consolas, monospace; background: var(--code); border: 1px solid var(--line);
+        border-radius: 2mm; padding: 3mm 3.5mm; margin: 0 0 3mm; white-space: pre-wrap; break-inside: avoid; }
+  .k { color: #1d4ed8; font-weight: 700; } .s { color: #b45309; } .n { color: #047857; } .c { color: #8a8a93; font-style: italic; } .f { color: #9333ea; }
+  table { border-collapse: collapse; width: 100%; margin: 0 0 3.5mm; font-size: 9.2pt; break-inside: avoid; }
+  th, td { border: 1px solid var(--line); padding: 1.2mm 2mm; text-align: left; vertical-align: top; }
+  th { background: #f0f0ee; font-weight: 700; }
+  .result { width: auto; min-width: 40%; font: 8.6pt "SF Mono", Menlo, monospace; margin-top: -1.5mm; }
+  .result th { background: #eef3ff; }
+  .result td.num { text-align: right; }
+  .result td.null { color: #a1a1aa; font-style: italic; }
+  .result caption { caption-side: bottom; text-align: left; color: var(--muted); font: 8.4pt "Apple SD Gothic Neo", sans-serif; padding-top: 1mm; }
+  .box { border-left: 3px solid var(--accent); background: #f4f7ff; padding: 2.5mm 3.5mm; margin: 0 0 3.5mm; border-radius: 0 2mm 2mm 0; break-inside: avoid; }
+  .box.warn { border-color: #d97706; background: #fff7ea; }
+  .box.block { border-color: #ffab19; background: #fff8e8; }
+  .box b:first-child { display: block; margin-bottom: 0.8mm; }
+  .part { break-before: page; padding: 4mm 0 2mm; }
+  .part .tag { display: inline-block; color: #fff; font-weight: 700; font-size: 9pt; padding: 0.8mm 3mm; border-radius: 10mm; margin-bottom: 2mm; }
+  .part p.lead { color: var(--muted); font-size: 11pt; }
+  .l1 .tag { background: var(--l1); } .l2 .tag { background: var(--l2); } .l3 .tag { background: var(--l3); } .l4 .tag { background: var(--l4); }
+  .cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; }
+  .cover h1 { font-size: 34pt; margin-bottom: 3mm; }
+  .cover .sub { font-size: 14pt; color: var(--muted); margin-bottom: 14mm; }
+  .ladder { display: flex; gap: 3mm; }
+  .ladder div { flex: 1; border-radius: 3mm; padding: 4mm; color: #fff; font-weight: 700; font-size: 11pt; }
+  .ladder small { display: block; font-weight: 400; font-size: 9pt; opacity: 0.9; margin-top: 1mm; }
+  .toc { columns: 2; column-gap: 10mm; font-size: 10pt; }
+  .toc div { break-inside: avoid; margin-bottom: 1mm; }
+  .toc .p { font-weight: 700; margin-top: 2.5mm; }
+  .order { display: flex; gap: 1.5mm; flex-wrap: wrap; margin-bottom: 3mm; }
+  .order span { background: #eef3ff; border: 1px solid #c7d6ff; border-radius: 1.5mm; padding: 0.8mm 2.5mm; font: 600 9pt Menlo, monospace; }
+  .order i { align-self: center; color: var(--muted); font-style: normal; }
+  .muted { color: var(--muted); }
+  .example { break-inside: avoid; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <h1>SQL<br/>입문부터 실무까지</h1>
+  <div class="sub">BlockSQL 샘플 데이터로 직접 따라 하는 단계별 가이드</div>
+  <div class="ladder">
+    <div style="background: var(--l1)">1. 입문<small>조회 · 조건 · 정렬</small></div>
+    <div style="background: var(--l2)">2. 중급<small>집계 · 조인 · 서브쿼리</small></div>
+    <div style="background: var(--l3)">3. 고급<small>CTE · 윈도우 함수 · 분석</small></div>
+    <div style="background: var(--l4)">4. 실무<small>설계 · 인덱스 · 트랜잭션 · 보안</small></div>
+  </div>
+</section>
+
+<section>
+  <h2 style="border:0">이 가이드 사용법</h2>
+  <p>모든 예제는 BlockSQL의 <b>샘플 카페</b> 데이터베이스(SQLite)에서 실제로 실행한 결과를 함께 보여줍니다. 결과 표는 이 PDF를 만들 때 자동으로 실행해 넣은 것이라 그대로 따라 하면 같은 결과가 나옵니다.</p>
+  <ol>
+    <li>BlockSQL을 열고 <b>설정 → 언어 → 한국어</b>를 고릅니다.</li>
+    <li>연결 메뉴에서 <b>샘플 새로 만들기</b>를 누릅니다. (한국어 샘플 데이터가 만들어집니다.)</li>
+    <li>오른쪽 위 <b>코드</b> 탭에 예제를 붙여 넣고 <code>⌘/Ctrl + Enter</code>로 실행합니다.</li>
+  </ol>
+  <h3>샘플 데이터 구조</h3>
+  <table>
+    <tr><th>테이블</th><th>열</th><th>설명</th></tr>
+    <tr><td><code>customers</code></td><td>id, name, city, email, grade, joined</td><td>고객 62명 (일부러 넣은 중복·빈 값 포함)</td></tr>
+    <tr><td><code>products</code></td><td>id, name, category, price</td><td>상품 15개, 가격은 원 단위 정수</td></tr>
+    <tr><td><code>orders</code></td><td>id, customer_id, product_id, qty, order_date, status</td><td>주문 500건 (2026년 1~9월)</td></tr>
+  </table>
+  <p><code>orders.customer_id</code>는 <code>customers.id</code>를, <code>orders.product_id</code>는 <code>products.id</code>를 가리킵니다(외래키).</p>
+  <div class="box"><b>표기 규칙</b>SQL 키워드는 대문자, 테이블·열 이름은 소문자로 씁니다. SQL은 대소문자를 구분하지 않지만, 이렇게 쓰면 읽기 쉽습니다. 예제는 SQLite 기준이며, PostgreSQL·MySQL과 다른 부분은 따로 표시했습니다.</div>
+
+  <h3>목차</h3>
+  <div class="toc">
+    <div class="p">1부 · 입문</div>
+    <div>1. 데이터베이스와 테이블</div><div>2. SELECT와 FROM</div><div>3. WHERE로 거르기</div><div>4. 정렬과 개수 제한</div><div>5. 계산과 함수</div><div>6. NULL 다루기</div>
+    <div class="p">2부 · 중급</div>
+    <div>7. 집계 함수</div><div>8. GROUP BY와 HAVING</div><div>9. 실행 순서</div><div>10. JOIN</div><div>11. 서브쿼리</div><div>12. 집합 연산</div>
+    <div class="p">3부 · 고급</div>
+    <div>13. CTE (WITH)</div><div>14. 윈도우 함수</div><div>15. 실전 분석 패턴</div><div>16. 데이터 바꾸기와 트랜잭션</div>
+    <div class="p">4부 · 실무</div>
+    <div>17. 스키마 설계</div><div>18. 인덱스와 실행 계획</div><div>19. 쿼리 성능</div><div>20. 동시성과 격리 수준</div><div>21. 보안</div><div>22. 운영과 데이터 품질</div><div>23. DB별 차이</div>
+    <div class="p">부록</div>
+    <div>A. 치트시트</div><div>B. 연습문제 정답</div>
+  </div>
+</section>
+
+<!-- ══════════════════════ PART 1 ══════════════════════ -->
+<section class="part l1">
+  <span class="tag">1부 · 입문</span>
+  <h1>데이터 꺼내 보기</h1>
+  <p class="lead">원하는 행과 열만 골라서, 원하는 순서로 보는 법.</p>
+</section>
+
+<h2>1. 데이터베이스와 테이블</h2>
+<p>데이터베이스는 <b>테이블</b>의 모음입니다. 테이블은 엑셀 시트와 비슷합니다. 한 줄(<b>행</b>, row)이 하나의 대상(고객 한 명, 주문 한 건)이고, 한 칸 위의 이름(<b>열</b>, column)이 그 대상의 속성입니다.</p>
+<table>
+  <tr><th>엑셀</th><th>SQL</th></tr>
+  <tr><td>파일</td><td>데이터베이스</td></tr>
+  <tr><td>시트</td><td>테이블</td></tr>
+  <tr><td>줄</td><td>행 (row, record)</td></tr>
+  <tr><td>열 제목</td><td>열 (column, field)</td></tr>
+</table>
+<p>엑셀과 다른 점은 <b>열마다 자료형이 정해져 있다</b>는 것(숫자 열에는 숫자만)과, <b>행에 순서가 없다</b>는 것입니다. 순서가 필요하면 매번 <code>ORDER BY</code>로 요청해야 합니다.</p>
+
+<h2>2. SELECT와 FROM</h2>
+<p>SQL 문장의 기본 모양은 "<b>어떤 열을</b>(SELECT) <b>어디에서</b>(FROM) 가져와라"입니다.</p>
+<pre class="sql run">SELECT name, city, grade
+FROM customers
+LIMIT 5;</pre>
+<p><code>*</code>는 "모든 열"입니다. 처음 표를 볼 때는 편하지만, 실무에서는 필요한 열만 적는 것이 좋습니다(19장).</p>
+<pre class="sql run">SELECT * FROM products LIMIT 3;</pre>
+<h3>별칭 AS</h3>
+<p>결과 열 이름을 바꿀 때 <code>AS</code>를 씁니다. 계산 결과에 이름을 붙일 때 특히 필요합니다.</p>
+<pre class="sql run">SELECT name AS 상품명, price AS 가격, price * 1.1 AS 부가세포함
+FROM products
+LIMIT 3;</pre>
+<div class="box block"><b>BlockSQL에서는</b>📋 <i>표에서</i> 블록이 <code>FROM</code>, <i>보여주기</i> 블록이 <code>SELECT</code>의 열 하나입니다. <i>이름</i> 칸이 <code>AS</code>입니다.</div>
+
+<h2>3. WHERE로 거르기</h2>
+<p><code>WHERE</code>는 조건에 맞는 행만 남깁니다.</p>
+<pre class="sql run">SELECT name, city, grade
+FROM customers
+WHERE city = '서울';</pre>
+<h3>비교 연산자</h3>
+<table>
+  <tr><th>연산자</th><th>뜻</th><th>예</th></tr>
+  <tr><td><code>=</code></td><td>같다</td><td><code>grade = 'VIP'</code></td></tr>
+  <tr><td><code>&lt;&gt;</code>, <code>!=</code></td><td>다르다</td><td><code>status &lt;&gt; '취소'</code></td></tr>
+  <tr><td><code>&gt; &gt;= &lt; &lt;=</code></td><td>크기 비교</td><td><code>price &gt;= 10000</code></td></tr>
+  <tr><td><code>BETWEEN a AND b</code></td><td>a 이상 b 이하</td><td><code>price BETWEEN 3000 AND 5000</code></td></tr>
+  <tr><td><code>IN (…)</code></td><td>목록 중 하나</td><td><code>city IN ('서울', '부산')</code></td></tr>
+  <tr><td><code>LIKE</code></td><td>패턴</td><td><code>name LIKE '김%'</code> (김으로 시작)</td></tr>
+  <tr><td><code>IS NULL</code></td><td>비어 있다</td><td><code>city IS NULL</code></td></tr>
+</table>
+<p>글자 값은 <b>작은따옴표</b>(<code>'서울'</code>)로 감쌉니다. 큰따옴표는 열 이름용입니다.</p>
+<h3>여러 조건: AND, OR, NOT</h3>
+<pre class="sql run">SELECT name, category, price
+FROM products
+WHERE category IN ('음료', '디저트')
+  AND price BETWEEN 5000 AND 7000;</pre>
+<div class="box warn"><b>주의: AND가 OR보다 먼저</b><code>a OR b AND c</code>는 <code>a OR (b AND c)</code>로 계산됩니다. AND와 OR을 섞을 때는 항상 괄호를 치세요. BlockSQL 코드 모드가 이 실수를 경고합니다.</div>
+<h3>LIKE 패턴</h3>
+<p><code>%</code>는 "아무 글자 여러 개", <code>_</code>는 "아무 글자 하나"입니다.</p>
+<pre class="sql run">SELECT name FROM products WHERE name LIKE '%라테';</pre>
+
+<h2>4. 정렬과 개수 제한</h2>
+<p><code>ORDER BY</code>로 정렬합니다. 기본은 오름차순(<code>ASC</code>), 내림차순은 <code>DESC</code>입니다. 여러 기준을 쉼표로 이어 쓸 수 있습니다.</p>
+<pre class="sql run">SELECT name, category, price
+FROM products
+ORDER BY category, price DESC
+LIMIT 6;</pre>
+<p><code>LIMIT n OFFSET m</code>은 m개를 건너뛰고 n개를 가져옵니다(페이지 넘기기).</p>
+<pre class="sql run">SELECT name, price FROM products ORDER BY price DESC LIMIT 3 OFFSET 3;</pre>
+<h3>중복 제거 DISTINCT</h3>
+<pre class="sql run">SELECT DISTINCT category FROM products ORDER BY category;</pre>
+
+<h2>5. 계산과 함수</h2>
+<h3>산술</h3>
+<pre class="sql run">SELECT id, qty, qty * 2 AS 두배, qty / 2 AS 정수나눗셈, qty * 1.0 / 2 AS 실수나눗셈
+FROM orders
+WHERE qty IS NOT NULL
+LIMIT 3;</pre>
+<div class="box warn"><b>주의: 정수 나눗셈</b>SQLite와 PostgreSQL에서 <code>3 / 2</code>는 <code>1</code>입니다. 소수가 필요하면 한쪽을 실수로 만드세요(<code>* 1.0</code>). MySQL은 <code>1.5</code>를 돌려줍니다.</div>
+<h3>문자열</h3>
+<pre class="sql run">SELECT name,
+       LENGTH(name)            AS 글자수,
+       UPPER(email)            AS 대문자,
+       name || ' (' || city || ')' AS 표시이름
+FROM customers
+WHERE city IS NOT NULL
+LIMIT 3;</pre>
+<p>문자열 이어 붙이기는 SQLite·PostgreSQL에서 <code>||</code>, MySQL에서 <code>CONCAT(a, b)</code>입니다.</p>
+<h3>날짜</h3>
+<p>SQLite에는 날짜 자료형이 없고 <code>'2026-03-15'</code> 같은 글자로 저장합니다. 이 형식(ISO 8601)이면 글자 비교만으로 날짜 순서가 맞습니다.</p>
+<pre class="sql run">SELECT order_date,
+       strftime('%Y', order_date) AS 연도,
+       strftime('%m', order_date) AS 월,
+       date(order_date, '+30 days') AS 삼십일후
+FROM orders
+LIMIT 3;</pre>
+<p>PostgreSQL: <code>EXTRACT(MONTH FROM order_date)</code>, <code>order_date + INTERVAL '30 days'</code> · MySQL: <code>MONTH(order_date)</code>, <code>DATE_ADD(order_date, INTERVAL 30 DAY)</code></p>
+<h3>조건에 따라 값 바꾸기: CASE</h3>
+<pre class="sql run">SELECT name, price,
+       CASE
+         WHEN price &lt; 5000  THEN '저가'
+         WHEN price &lt; 10000 THEN '중가'
+         ELSE '고가'
+       END AS 가격대
+FROM products
+LIMIT 5;</pre>
+<div class="box block"><b>BlockSQL에서는</b><i>계산</i> 범주에 산술(+ − × ÷), 함수(연도·월·글자 수…), <i>만약 … 이면 … 아니면</i>(CASE) 블록이 있습니다. 나눗셈 블록은 자동으로 실수 나눗셈을 씁니다.</div>
+
+<h2>6. NULL 다루기</h2>
+<p><code>NULL</code>은 "값이 없음/모름"입니다. 0도, 빈 글자 <code>''</code>도 아닙니다. 그래서 <b><code>= NULL</code>은 항상 실패</b>하고, <code>IS NULL</code>을 써야 합니다.</p>
+<pre class="sql run">SELECT
+  (SELECT COUNT(*) FROM customers WHERE city = NULL)  AS 등호로_찾기,
+  (SELECT COUNT(*) FROM customers WHERE city IS NULL) AS IS_NULL로_찾기;</pre>
+<p>NULL이 섞인 계산은 결과도 NULL이 됩니다. 대신할 값을 정하려면 <code>COALESCE</code>를 씁니다.</p>
+<pre class="sql run">SELECT name, COALESCE(city, '미입력') AS city
+FROM customers
+WHERE city IS NULL
+LIMIT 3;</pre>
+<div class="box"><b>세 가지 진리값</b>SQL의 조건은 참·거짓·<b>모름</b>(NULL) 세 가지입니다. WHERE는 "참"인 행만 남기므로, <code>city &lt;&gt; '서울'</code>은 city가 NULL인 행도 버립니다. NULL까지 포함하려면 <code>city &lt;&gt; '서울' OR city IS NULL</code>.</div>
+<h3>연습문제 1</h3>
+<ol class="ex-list">
+  <li>가격이 10,000원 이상인 상품을 비싼 순으로 보여주세요.</li>
+  <li>이메일이 빈 글자(<code>''</code>)인 고객의 이름을 보여주세요.</li>
+  <li>'취소'가 아닌 주문 중 수량(qty)이 4인 주문을 최근 날짜 순으로 5개만 보여주세요.</li>
+</ol>
+
+<!-- ══════════════════════ PART 2 ══════════════════════ -->
+<section class="part l2">
+  <span class="tag">2부 · 중급</span>
+  <h1>묶고, 잇고, 끼워 넣기</h1>
+  <p class="lead">여러 행을 요약하고, 여러 테이블을 연결하는 법.</p>
+</section>
+
+<h2>7. 집계 함수</h2>
+<p>집계 함수는 여러 행을 값 하나로 줄입니다.</p>
+<pre class="sql run">SELECT COUNT(*)       AS 주문수,
+       COUNT(qty)     AS 수량있는주문,
+       SUM(qty)       AS 총수량,
+       ROUND(AVG(qty), 2) AS 평균수량,
+       MIN(order_date) AS 첫주문,
+       MAX(order_date) AS 마지막주문
+FROM orders;</pre>
+<p><code>COUNT(*)</code>는 행 수, <code>COUNT(열)</code>은 그 열이 NULL이 아닌 행 수입니다. 두 값이 다르면 빈 값이 있다는 뜻입니다. <code>COUNT(DISTINCT 열)</code>은 종류 수입니다.</p>
+<pre class="sql run">SELECT COUNT(DISTINCT customer_id) AS 주문한고객수 FROM orders;</pre>
+
+<h2>8. GROUP BY와 HAVING</h2>
+<p><code>GROUP BY</code>는 같은 값끼리 묶어서 묶음마다 집계합니다.</p>
+<pre class="sql run">SELECT status, COUNT(*) AS 건수
+FROM orders
+GROUP BY status
+ORDER BY 건수 DESC;</pre>
+<p>여러 열로 묶을 수도 있습니다. 매출 = 수량 × 가격이므로 상품 테이블과 연결해야 합니다(10장). 우선 상품별 판매 수량만 봅니다.</p>
+<pre class="sql run">SELECT product_id, SUM(qty) AS 판매수량
+FROM orders
+WHERE status = '완료'
+GROUP BY product_id
+ORDER BY 판매수량 DESC
+LIMIT 5;</pre>
+<div class="box warn"><b>규칙: SELECT의 일반 열은 GROUP BY에도</b>집계 함수로 감싸지 않은 열은 GROUP BY에 있어야 합니다. PostgreSQL은 오류를 내고, SQLite·MySQL(일부 설정)은 아무 값이나 골라 보여줘서 더 위험합니다.</div>
+<h3>HAVING: 묶은 뒤에 거르기</h3>
+<p><code>WHERE</code>는 묶기 <b>전</b> 행을, <code>HAVING</code>은 묶은 <b>후</b> 그룹을 거릅니다. 집계 결과로 거르려면 HAVING을 씁니다.</p>
+<pre class="sql run">SELECT customer_id, COUNT(*) AS 주문수
+FROM orders
+WHERE status &lt;&gt; '취소'
+GROUP BY customer_id
+HAVING COUNT(*) &gt;= 12
+ORDER BY 주문수 DESC;</pre>
+<div class="box block"><b>BlockSQL에서는</b><i>묶기</i> 블록이 GROUP BY, <i>묶은 뒤 조건</i> 블록이 HAVING입니다. 시트에서 열 이름을 누르고 <i>묶기</i>를 고르면 개수까지 자동으로 붙습니다.</div>
+
+<h2>9. 실행 순서</h2>
+<p>SQL은 적은 순서와 <b>실행되는 순서가 다릅니다</b>. 이걸 알면 대부분의 오류가 이해됩니다.</p>
+<div class="order"><span>FROM / JOIN</span><i>→</i><span>WHERE</span><i>→</i><span>GROUP BY</span><i>→</i><span>HAVING</span><i>→</i><span>SELECT</span><i>→</i><span>DISTINCT</span><i>→</i><span>ORDER BY</span><i>→</i><span>LIMIT</span></div>
+<ul>
+  <li>WHERE에서는 SELECT의 별칭을 쓸 수 없습니다(아직 만들어지지 않음). ORDER BY에서는 쓸 수 있습니다.</li>
+  <li>WHERE에서 집계 함수를 쓸 수 없습니다(아직 묶지 않음) → HAVING을 씁니다.</li>
+  <li>LIMIT은 맨 마지막이라, 정렬 없이 LIMIT을 쓰면 "아무 n개"가 나옵니다.</li>
+</ul>
+<p>BlockSQL 코드 모드의 <b>설명</b> 탭은 쿼리를 이 순서대로 풀어서 보여줍니다.</p>
+
+<h2>10. JOIN</h2>
+<p>테이블을 나누어 저장하는 이유는 중복을 없애기 위해서입니다(17장). 보여줄 때는 다시 이어 붙여야 하는데, 이것이 <code>JOIN</code>입니다.</p>
+<pre class="sql run">SELECT o.id, c.name AS 고객, p.name AS 상품, o.qty, p.price * o.qty AS 금액
+FROM orders o
+JOIN customers c ON c.id = o.customer_id
+JOIN products  p ON p.id = o.product_id
+ORDER BY o.id
+LIMIT 5;</pre>
+<p><code>orders o</code>처럼 테이블에 짧은 별칭을 붙이면 <code>o.qty</code>로 어느 테이블의 열인지 밝힐 수 있습니다. 두 테이블에 같은 이름의 열(<code>id</code>, <code>name</code>)이 있으면 반드시 밝혀야 합니다.</p>
+<h3>JOIN 종류</h3>
+<table>
+  <tr><th>종류</th><th>결과</th></tr>
+  <tr><td><code>INNER JOIN</code> (= <code>JOIN</code>)</td><td>양쪽에 짝이 있는 행만</td></tr>
+  <tr><td><code>LEFT JOIN</code></td><td>왼쪽은 전부, 짝이 없으면 오른쪽 열은 NULL</td></tr>
+  <tr><td><code>RIGHT JOIN</code></td><td>오른쪽은 전부 (LEFT의 반대)</td></tr>
+  <tr><td><code>FULL JOIN</code></td><td>양쪽 전부 (MySQL 미지원)</td></tr>
+  <tr><td><code>CROSS JOIN</code></td><td>모든 조합 (행 수 = 왼쪽 × 오른쪽)</td></tr>
+</table>
+<h3>LEFT JOIN으로 "없는 것" 찾기</h3>
+<p>한 번도 주문하지 않은 고객: LEFT JOIN 후 오른쪽이 NULL인 행.</p>
+<pre class="sql run">SELECT c.id, c.name
+FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.id
+WHERE o.id IS NULL;</pre>
+<h3>카테고리별 매출</h3>
+<pre class="sql run">SELECT p.category, SUM(o.qty * p.price) AS 매출, COUNT(*) AS 주문수
+FROM orders o
+JOIN products p ON p.id = o.product_id
+WHERE o.status = '완료'
+GROUP BY p.category
+ORDER BY 매출 DESC;</pre>
+<div class="box warn"><b>주의: 행이 불어나는 JOIN (fan-out)</b>1:N 관계를 잇면 1쪽 행이 N번 반복됩니다. 고객 테이블의 값을 합산한 뒤 주문과 JOIN하면 같은 값이 여러 번 더해집니다. <b>먼저 집계하고 나중에 JOIN</b>하거나, JOIN 전후로 <code>COUNT(*)</code>를 비교해 확인하세요.</div>
+<div class="box block"><b>BlockSQL에서는</b><i>연결</i> 블록을 끼우면 외래키(또는 <code>테이블_id</code> 이름)를 보고 <code>ON</code> 조건을 자동으로 채웁니다. <i>짝 있는 것만</i> = INNER, <i>왼쪽 다 유지</i> = LEFT.</div>
+
+<h2>11. 서브쿼리</h2>
+<p>쿼리 안에 넣은 쿼리입니다. 넣는 위치에 따라 역할이 다릅니다.</p>
+<h3>값 하나 (스칼라 서브쿼리)</h3>
+<pre class="sql run">SELECT name, price
+FROM products
+WHERE price &gt; (SELECT AVG(price) FROM products)
+ORDER BY price DESC;</pre>
+<h3>목록 (IN / EXISTS)</h3>
+<pre class="sql run">SELECT name, grade
+FROM customers c
+WHERE EXISTS (
+  SELECT 1 FROM orders o
+  WHERE o.customer_id = c.id AND o.status = '취소'
+)
+AND grade = 'VIP';</pre>
+<div class="box warn"><b>주의: NOT IN과 NULL</b><code>NOT IN (서브쿼리)</code>의 결과에 NULL이 하나라도 있으면 전체가 빈 결과가 됩니다. "없는 것 찾기"에는 <code>NOT EXISTS</code>나 LEFT JOIN … IS NULL을 쓰세요.</div>
+<h3>표 (파생 테이블)</h3>
+<pre class="sql run">SELECT 등급, COUNT(*) AS 고객수
+FROM (
+  SELECT customer_id,
+         CASE WHEN COUNT(*) &gt;= 10 THEN '단골' ELSE '일반' END AS 등급
+  FROM orders
+  GROUP BY customer_id
+) t
+GROUP BY 등급;</pre>
+
+<h2>12. 집합 연산</h2>
+<p>결과 두 개를 위아래로 합치거나 비교합니다. 열 개수와 자료형이 같아야 합니다.</p>
+<table>
+  <tr><th>연산</th><th>뜻</th></tr>
+  <tr><td><code>UNION</code></td><td>합치고 중복 제거</td></tr>
+  <tr><td><code>UNION ALL</code></td><td>합치기 (중복 유지, 더 빠름)</td></tr>
+  <tr><td><code>INTERSECT</code></td><td>양쪽에 다 있는 것</td></tr>
+  <tr><td><code>EXCEPT</code></td><td>왼쪽에만 있는 것 (MySQL 8.0.31+)</td></tr>
+</table>
+<pre class="sql run">SELECT city FROM customers WHERE grade = 'VIP'
+INTERSECT
+SELECT city FROM customers WHERE grade = '골드'
+ORDER BY city;</pre>
+<h3>연습문제 2</h3>
+<ol class="ex-list" start="4">
+  <li>도시별 고객 수를 많은 순으로 보여주세요. 도시가 비어 있는 고객은 '미입력'으로 묶어 주세요.</li>
+  <li>상품별 완료 주문 매출(수량×가격)을 구하고, 매출이 300,000원 이상인 상품만 보여주세요.</li>
+  <li>한 번도 팔리지 않은(완료 주문이 없는) 상품이 있는지 찾아보세요.</li>
+</ol>
+
+<!-- ══════════════════════ PART 3 ══════════════════════ -->
+<section class="part l3">
+  <span class="tag">3부 · 고급</span>
+  <h1>분석하는 SQL</h1>
+  <p class="lead">긴 쿼리를 읽기 좋게 나누고, 순위·누적·전월 대비를 한 번에 계산하는 법.</p>
+</section>
+
+<h2>13. CTE (WITH)</h2>
+<p><code>WITH 이름 AS (쿼리)</code>로 중간 결과에 이름을 붙입니다. 서브쿼리를 겹겹이 넣는 대신 위에서 아래로 읽히게 만들어 줍니다. 실무 분석 쿼리는 대부분 CTE로 씁니다.</p>
+<pre class="sql run">WITH sales AS (
+  SELECT o.customer_id, SUM(o.qty * p.price) AS amount
+  FROM orders o
+  JOIN products p ON p.id = o.product_id
+  WHERE o.status = '완료'
+  GROUP BY o.customer_id
+)
+SELECT c.name, c.grade, s.amount
+FROM sales s
+JOIN customers c ON c.id = s.customer_id
+ORDER BY s.amount DESC
+LIMIT 5;</pre>
+<h3>재귀 CTE: 빠진 날짜 채우기</h3>
+<p>자기 자신을 참조하는 CTE로 연속된 값을 만들 수 있습니다. 매출이 없는 달도 0으로 보여줘야 할 때 씁니다.</p>
+<pre class="sql run">WITH RECURSIVE months(m) AS (
+  SELECT '2026-01'
+  UNION ALL
+  SELECT strftime('%Y-%m', m || '-01', '+1 month') FROM months WHERE m &lt; '2026-12'
+),
+monthly AS (
+  SELECT substr(order_date, 1, 7) AS m, COUNT(*) AS n
+  FROM orders GROUP BY 1
+)
+SELECT months.m AS 월, COALESCE(monthly.n, 0) AS 주문수
+FROM months LEFT JOIN monthly ON monthly.m = months.m
+ORDER BY 1;</pre>
+
+<h2>14. 윈도우 함수</h2>
+<p>GROUP BY는 행을 하나로 <b>줄이지만</b>, 윈도우 함수는 행을 그대로 두고 옆에 계산 결과를 <b>붙입니다</b>. 모양은 <code>함수() OVER (PARTITION BY … ORDER BY …)</code>입니다.</p>
+<ul>
+  <li><code>PARTITION BY</code>: 어떤 묶음 안에서 계산할지 (생략하면 전체)</li>
+  <li><code>ORDER BY</code>: 묶음 안의 순서 (순위·누적에 필요)</li>
+</ul>
+<h3>순위: ROW_NUMBER, RANK, DENSE_RANK</h3>
+<pre class="sql run">SELECT name, category, price,
+       ROW_NUMBER() OVER (ORDER BY price DESC) AS row_num,
+       RANK()       OVER (ORDER BY price DESC) AS rnk,
+       DENSE_RANK() OVER (ORDER BY price DESC) AS dense
+FROM products
+LIMIT 6;</pre>
+<p>같은 값일 때 ROW_NUMBER는 아무 순서로 1, 2를, RANK는 1, 1, 3을, DENSE_RANK는 1, 1, 2를 줍니다.</p>
+<h3>누적합과 전체 대비 비율</h3>
+<pre class="sql run">WITH m AS (
+  SELECT substr(o.order_date, 1, 7) AS 월, SUM(o.qty * p.price) AS 매출
+  FROM orders o JOIN products p ON p.id = o.product_id
+  WHERE o.status = '완료'
+  GROUP BY 1
+)
+SELECT 월, 매출,
+       SUM(매출) OVER (ORDER BY 월) AS 누적매출,
+       ROUND(100.0 * 매출 / SUM(매출) OVER (), 1) AS 비중
+FROM m
+ORDER BY 월;</pre>
+<h3>앞뒤 행 보기: LAG, LEAD (전월 대비)</h3>
+<pre class="sql run">WITH m AS (
+  SELECT substr(o.order_date, 1, 7) AS 월, SUM(o.qty * p.price) AS 매출
+  FROM orders o JOIN products p ON p.id = o.product_id
+  WHERE o.status = '완료'
+  GROUP BY 1
+)
+SELECT 월, 매출,
+       LAG(매출) OVER (ORDER BY 월) AS 전월,
+       ROUND(100.0 * (매출 - LAG(매출) OVER (ORDER BY 월)) / LAG(매출) OVER (ORDER BY 월), 1) AS 증감률
+FROM m
+ORDER BY 월;</pre>
+<h3>이동 평균 (프레임)</h3>
+<pre class="sql run">WITH d AS (
+  SELECT order_date AS 날짜, COUNT(*) AS 주문수
+  FROM orders WHERE order_date &lt; '2026-01-11'
+  GROUP BY 1
+)
+SELECT 날짜, 주문수,
+       ROUND(AVG(주문수) OVER (ORDER BY 날짜 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS 최근3일평균
+FROM d;</pre>
+
+<h2>15. 실전 분석 패턴</h2>
+<p>현업에서 반복해서 나오는 질문과 정석 풀이입니다.</p>
+<h3>그룹별 상위 N개 (Top-N per group)</h3>
+<p>"카테고리마다 가장 많이 팔린 상품 1개": 윈도우 함수로 순위를 매기고 바깥에서 거릅니다.</p>
+<pre class="sql run">WITH ranked AS (
+  SELECT p.category, p.name, SUM(o.qty) AS 판매량,
+         ROW_NUMBER() OVER (PARTITION BY p.category ORDER BY SUM(o.qty) DESC) AS rn
+  FROM orders o JOIN products p ON p.id = o.product_id
+  WHERE o.status = '완료'
+  GROUP BY p.category, p.name
+)
+SELECT category, name, 판매량 FROM ranked WHERE rn = 1 ORDER BY 판매량 DESC;</pre>
+<h3>중복 제거하고 최신 1건만</h3>
+<p>고객마다 마지막 주문 한 건. 같은 패턴으로 "중복 행 중 하나만 남기기"도 풉니다.</p>
+<pre class="sql run">WITH last AS (
+  SELECT *, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC, id DESC) AS rn
+  FROM orders
+)
+SELECT customer_id, order_date, status FROM last WHERE rn = 1 ORDER BY customer_id LIMIT 5;</pre>
+<h3>피벗: 행을 열로</h3>
+<p>표준 SQL에는 PIVOT이 없어서 <code>CASE</code>를 집계 함수 안에 넣습니다.</p>
+<pre class="sql run">SELECT substr(order_date, 1, 7) AS 월,
+       SUM(CASE WHEN status = '완료'   THEN 1 ELSE 0 END) AS 완료,
+       SUM(CASE WHEN status = '배송중' THEN 1 ELSE 0 END) AS 배송중,
+       SUM(CASE WHEN status = '취소'   THEN 1 ELSE 0 END) AS 취소
+FROM orders
+GROUP BY 1
+ORDER BY 1
+LIMIT 4;</pre>
+<p>PostgreSQL은 <code>COUNT(*) FILTER (WHERE status = '완료')</code>로 더 짧게 쓸 수 있습니다.</p>
+<h3>코호트 (가입 월별 재구매)</h3>
+<pre class="sql run">WITH first_order AS (
+  SELECT customer_id, MIN(substr(order_date, 1, 7)) AS cohort
+  FROM orders GROUP BY customer_id
+),
+activity AS (
+  SELECT DISTINCT o.customer_id, f.cohort, substr(o.order_date, 1, 7) AS m
+  FROM orders o JOIN first_order f ON f.customer_id = o.customer_id
+)
+SELECT cohort AS 첫주문월,
+       COUNT(DISTINCT customer_id) AS 고객수,
+       COUNT(DISTINCT CASE WHEN m &gt; cohort THEN customer_id END) AS 이후재구매
+FROM activity
+GROUP BY cohort
+ORDER BY cohort;</pre>
+<h3>중복 데이터 찾기</h3>
+<pre class="sql run">SELECT name, email, COUNT(*) AS 개수
+FROM customers
+GROUP BY name, email
+HAVING COUNT(*) &gt; 1;</pre>
+
+<h2>16. 데이터 바꾸기와 트랜잭션</h2>
+<p>아래 예제는 이 가이드를 만들 때 트랜잭션 안에서 실행하고 되돌렸습니다. BlockSQL에서는 실행 전에 몇 행이 바뀌는지 먼저 보여줍니다.</p>
+<h3>INSERT · UPDATE · DELETE</h3>
+<pre class="sql run">INSERT INTO products (name, category, price) VALUES ('바닐라라테', '음료', 5500);
+UPDATE products SET price = price + 500 WHERE category = '음료';
+DELETE FROM orders WHERE status = '취소';
+SELECT name, price FROM products WHERE category = '음료';</pre>
+<div class="box warn"><b>WHERE 없는 UPDATE/DELETE</b>테이블의 모든 행이 바뀌거나 지워집니다. 실행 전에 같은 WHERE로 <code>SELECT COUNT(*)</code>를 먼저 돌려 보는 습관을 들이세요.</div>
+<h3>UPSERT: 있으면 수정, 없으면 추가</h3>
+<pre class="sql">-- SQLite / PostgreSQL
+INSERT INTO products (id, name, category, price) VALUES (1, '아메리카노', '음료', 4700)
+ON CONFLICT (id) DO UPDATE SET price = excluded.price;
+
+-- MySQL
+INSERT INTO products (id, name, category, price) VALUES (1, '아메리카노', '음료', 4700)
+ON DUPLICATE KEY UPDATE price = VALUES(price);</pre>
+<h3>트랜잭션</h3>
+<p>여러 문장을 <b>전부 성공하거나 전부 없던 일</b>로 묶습니다. 계좌 이체처럼 중간에 멈추면 안 되는 작업에 필수입니다.</p>
+<pre class="sql">BEGIN;
+UPDATE accounts SET balance = balance - 10000 WHERE id = 1;
+UPDATE accounts SET balance = balance + 10000 WHERE id = 2;
+COMMIT;   -- 문제가 있으면 ROLLBACK;</pre>
+<h3>연습문제 3</h3>
+<ol class="ex-list" start="7">
+  <li>등급(grade)별로 완료 매출 1위 고객을 구하세요.</li>
+  <li>월별 주문 수와 전월 대비 증감(건수)을 구하세요.</li>
+  <li>상품별 매출과 함께, 전체 매출 중 비중(%)과 매출 순위를 한 번에 보여주세요.</li>
+</ol>
+
+<!-- ══════════════════════ PART 4 ══════════════════════ -->
+<section class="part l4">
+  <span class="tag">4부 · 실무</span>
+  <h1>운영 환경의 SQL</h1>
+  <p class="lead">수백만 행, 여러 사용자, 실수하면 안 되는 데이터를 다루는 법.</p>
+</section>
+
+<h2>17. 스키마 설계</h2>
+<h3>정규화</h3>
+<p>같은 사실은 한 곳에만 저장합니다. 주문 테이블에 고객 이름을 복사해 두면, 이름이 바뀔 때 모든 주문을 고쳐야 하고 하나라도 빠뜨리면 데이터가 어긋납니다.</p>
+<table>
+  <tr><th>단계</th><th>규칙</th><th>어긴 예</th></tr>
+  <tr><td>1NF</td><td>한 칸에 값 하나</td><td><code>tags = '커피,디저트'</code></td></tr>
+  <tr><td>2NF</td><td>키 전체에 의존</td><td>(주문id, 상품id) 키인데 상품명 저장</td></tr>
+  <tr><td>3NF</td><td>키가 아닌 열에 의존 금지</td><td>우편번호와 함께 시/도를 반복 저장</td></tr>
+</table>
+<p>분석용 데이터 웨어하우스에서는 조회 속도를 위해 일부러 합쳐 두기도 합니다(비정규화, 스타 스키마). 원본(운영 DB)은 정규화, 분석용 사본은 비정규화가 일반적입니다.</p>
+<h3>제약 조건으로 잘못된 데이터 막기</h3>
+<pre class="sql">CREATE TABLE orders (
+  id          BIGINT PRIMARY KEY,
+  customer_id BIGINT NOT NULL REFERENCES customers(id),
+  product_id  BIGINT NOT NULL REFERENCES products(id),
+  qty         INTEGER NOT NULL CHECK (qty &gt; 0),
+  amount      NUMERIC(12, 2) NOT NULL,          -- 돈은 실수형(FLOAT) 금지
+  status      TEXT NOT NULL CHECK (status IN ('paid', 'shipped', 'cancelled')),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(), -- 시간대 포함
+  UNIQUE (customer_id, product_id, created_at)
+);</pre>
+<ul>
+  <li><b>돈</b>: <code>FLOAT</code>은 0.1 + 0.2 ≠ 0.3 같은 오차가 납니다. <code>NUMERIC/DECIMAL</code> 또는 최소 단위 정수(원, 센트)로 저장합니다.</li>
+  <li><b>시간</b>: 시간대를 포함한 타입(PostgreSQL <code>TIMESTAMPTZ</code>)으로 UTC 기준 저장, 보여줄 때 변환합니다.</li>
+  <li><b>키</b>: 의미 없는 대리키(<code>id</code>)를 기본키로, 업무상 고유한 값(이메일, 사업자번호)에는 <code>UNIQUE</code>를 겁니다.</li>
+  <li><b>NULL 허용은 예외로</b>: 기본은 <code>NOT NULL</code>, 정말 "모름"이 가능한 열만 NULL 허용.</li>
+</ul>
+
+<h2>18. 인덱스와 실행 계획</h2>
+<p>인덱스는 책 뒤의 찾아보기입니다. 없으면 DB는 모든 행을 읽어야 하고(전체 스캔), 있으면 정렬된 트리(B-tree)에서 바로 찾아갑니다.</p>
+<h3>실행 계획 보기</h3>
+<pre class="sql run">EXPLAIN QUERY PLAN
+SELECT * FROM orders WHERE customer_id = 7;</pre>
+<p><code>SCAN</code>은 전체를 다 읽는다는 뜻입니다. 인덱스를 만들고 다시 봅니다.</p>
+<pre class="sql run">CREATE INDEX idx_orders_customer ON orders (customer_id);
+EXPLAIN QUERY PLAN
+SELECT * FROM orders WHERE customer_id = 7;</pre>
+<p><code>SEARCH … USING INDEX</code>로 바뀌었습니다. PostgreSQL은 <code>EXPLAIN ANALYZE</code>, MySQL은 <code>EXPLAIN</code>(8.0.18+는 <code>EXPLAIN ANALYZE</code>)으로 실제 소요 시간까지 볼 수 있습니다.</p>
+<h3>복합 인덱스는 순서가 중요</h3>
+<p><code>(customer_id, order_date)</code> 인덱스는 전화번호부처럼 customer_id로 먼저 정렬되어 있습니다.</p>
+<ul>
+  <li><code>WHERE customer_id = 7</code> ✅ · <code>WHERE customer_id = 7 AND order_date &gt;= '2026-05-01'</code> ✅</li>
+  <li><code>WHERE order_date &gt;= '2026-05-01'</code> ❌ (앞 열 없이 뒤 열만으로는 못 씀)</li>
+</ul>
+<p>규칙: <b>같다(=) 조건 열을 앞에, 범위 조건 열을 뒤에</b>.</p>
+<h3>인덱스를 못 쓰게 만드는 습관</h3>
+<table>
+  <tr><th>나쁜 예</th><th>좋은 예</th></tr>
+  <tr><td><code>WHERE strftime('%Y', order_date) = '2026'</code></td><td><code>WHERE order_date &gt;= '2026-01-01' AND order_date &lt; '2027-01-01'</code></td></tr>
+  <tr><td><code>WHERE name LIKE '%라테'</code></td><td><code>WHERE name LIKE '라테%'</code> 또는 전문 검색 인덱스</td></tr>
+  <tr><td><code>WHERE phone = 01012345678</code> (글자 열에 숫자)</td><td><code>WHERE phone = '01012345678'</code></td></tr>
+  <tr><td><code>WHERE a = 1 OR b = 2</code></td><td>두 쿼리를 <code>UNION ALL</code></td></tr>
+</table>
+<div class="box"><b>인덱스의 비용</b>인덱스는 읽기를 빠르게 하는 대신 INSERT·UPDATE를 느리게 하고 공간을 씁니다. 실제로 자주 쓰는 WHERE·JOIN·ORDER BY 열에만 만드세요.</div>
+
+<h2>19. 쿼리 성능</h2>
+<ul>
+  <li><b>필요한 열만</b>: <code>SELECT *</code>는 네트워크·메모리를 낭비하고 커버링 인덱스를 못 쓰게 합니다.</li>
+  <li><b>N+1 피하기</b>: 고객 100명을 가져온 뒤 고객마다 주문을 따로 조회(101번)하지 말고 JOIN이나 <code>WHERE customer_id IN (…)</code> 한 번으로.</li>
+  <li><b>먼저 거르고 나중에 잇기</b>: 큰 테이블끼리 JOIN하기 전에 CTE에서 기간·상태로 줄입니다.</li>
+  <li><b>일괄 처리</b>: 1만 행을 넣을 때 INSERT 1만 번이 아니라 여러 행 VALUES + 하나의 트랜잭션.</li>
+</ul>
+<h3>페이지네이션: OFFSET 대신 키셋</h3>
+<p><code>OFFSET 100000</code>은 앞의 10만 행을 읽고 버립니다. 마지막으로 본 키 다음부터 가져오면 페이지가 깊어져도 빠릅니다.</p>
+<pre class="sql run">-- 다음 페이지: 직전 페이지 마지막 id가 120이었다면
+SELECT id, order_date, status
+FROM orders
+WHERE id &gt; 120
+ORDER BY id
+LIMIT 5;</pre>
+
+<h2>20. 동시성과 격리 수준</h2>
+<p>여러 사용자가 동시에 같은 데이터를 읽고 쓰면 이상 현상이 생깁니다. 트랜잭션의 <b>ACID</b> 성질(원자성·일관성·격리성·지속성) 중 격리성의 강도를 정하는 것이 격리 수준입니다.</p>
+<table>
+  <tr><th>격리 수준</th><th>더티 리드</th><th>반복 불가 읽기</th><th>팬텀</th><th>기본값</th></tr>
+  <tr><td>READ UNCOMMITTED</td><td>가능</td><td>가능</td><td>가능</td><td></td></tr>
+  <tr><td>READ COMMITTED</td><td>방지</td><td>가능</td><td>가능</td><td>PostgreSQL</td></tr>
+  <tr><td>REPEATABLE READ</td><td>방지</td><td>방지</td><td>가능*</td><td>MySQL InnoDB</td></tr>
+  <tr><td>SERIALIZABLE</td><td>방지</td><td>방지</td><td>방지</td><td>SQLite</td></tr>
+</table>
+<p class="muted" style="font-size:9pt">* PostgreSQL·InnoDB의 REPEATABLE READ는 구현상 팬텀도 대부분 막습니다.</p>
+<h3>잃어버린 갱신 막기</h3>
+<p>두 사람이 재고 10을 동시에 읽고 각자 1을 빼서 9를 저장하면 하나가 사라집니다. 해결책 세 가지:</p>
+<pre class="sql">-- 1) 계산을 DB에 맡기기 (가장 간단)
+UPDATE products SET stock = stock - 1 WHERE id = 3 AND stock &gt; 0;
+
+-- 2) 비관적 잠금: 읽을 때 잠그기
+BEGIN;
+SELECT stock FROM products WHERE id = 3 FOR UPDATE;
+UPDATE products SET stock = 9 WHERE id = 3;
+COMMIT;
+
+-- 3) 낙관적 잠금: 버전 열로 충돌 감지 (바뀐 행이 0이면 다시 시도)
+UPDATE products SET stock = 9, version = version + 1
+WHERE id = 3 AND version = 41;</pre>
+<div class="box"><b>데드락</b>두 트랜잭션이 서로가 잡은 행을 기다리면 DB가 한쪽을 강제로 취소합니다. 항상 <b>같은 순서</b>(예: id 오름차순)로 행을 잠그고, 트랜잭션은 짧게 유지하고, 취소되면 재시도하도록 코드를 짭니다.</div>
+
+<h2>21. 보안</h2>
+<h3>SQL 인젝션</h3>
+<p>사용자 입력을 SQL 문자열에 그대로 붙이면, 입력에 SQL을 넣어 DB를 조작할 수 있습니다.</p>
+<pre class="sql">-- 위험: 입력이  ' OR '1'='1  이면 모든 사용자가 조회됨
+"SELECT * FROM users WHERE email = '" + input + "'"
+
+-- 안전: 값은 항상 파라미터로 따로 전달
+SELECT * FROM users WHERE email = ?        -- SQLite, MySQL
+SELECT * FROM users WHERE email = $1       -- PostgreSQL</pre>
+<p>파라미터는 값으로만 취급되므로 SQL로 해석되지 않습니다. 테이블·열 이름처럼 파라미터로 못 넘기는 부분은 허용 목록(allow-list)으로 검사합니다.</p>
+<h3>최소 권한</h3>
+<pre class="sql">CREATE ROLE report_reader LOGIN PASSWORD '…';
+GRANT SELECT ON orders, products TO report_reader;   -- 읽기만
+REVOKE ALL ON customers FROM report_reader;          -- 개인정보 차단</pre>
+<ul>
+  <li>애플리케이션 계정은 필요한 테이블에 필요한 권한만. DDL(DROP 등) 권한은 마이그레이션 계정에만.</li>
+  <li>개인정보(이메일·전화번호)는 분석용 뷰에서 가리거나(마스킹) 해시합니다.</li>
+  <li>비밀번호는 DB에 평문 저장 금지 — bcrypt/argon2 해시로 저장합니다.</li>
+</ul>
+
+<h2>22. 운영과 데이터 품질</h2>
+<h3>마이그레이션</h3>
+<p>운영 DB의 구조 변경은 손으로 하지 않고 <b>버전 관리되는 마이그레이션 파일</b>로 합니다(Flyway, Liquibase, Alembic, Prisma 등). 원칙:</p>
+<ul>
+  <li>한 번 적용한 마이그레이션은 고치지 않고 새 파일을 추가합니다.</li>
+  <li>큰 테이블에 열 추가·인덱스 생성은 잠금을 피하는 방식으로(PostgreSQL <code>CREATE INDEX CONCURRENTLY</code>).</li>
+  <li>열 이름 변경·삭제는 "추가 → 양쪽 쓰기 → 옮기기 → 옛 열 제거" 여러 단계로 나눠 배포 중에도 앱이 깨지지 않게 합니다.</li>
+</ul>
+<h3>뷰</h3>
+<p>자주 쓰는 복잡한 쿼리를 이름 붙여 저장합니다. 권한을 뷰 단위로 주면 원본 테이블을 숨길 수 있습니다.</p>
+<pre class="sql run">CREATE VIEW v_sales AS
+SELECT o.id, o.order_date, c.city, p.category, o.qty * p.price AS amount
+FROM orders o
+JOIN customers c ON c.id = o.customer_id
+JOIN products p ON p.id = o.product_id
+WHERE o.status = '완료';
+
+SELECT city, SUM(amount) AS 매출 FROM v_sales GROUP BY city ORDER BY 매출 DESC LIMIT 3;</pre>
+<p>계산이 무거우면 결과를 저장해 두는 <b>머티리얼라이즈드 뷰</b>(PostgreSQL)를 쓰고 주기적으로 <code>REFRESH</code>합니다.</p>
+<h3>데이터 품질 검사</h3>
+<p>BlockSQL의 <b>건강검진</b>이 실행하는 검사를 직접 쓰면 이렇습니다. 데이터 파이프라인에서는 이런 검사를 매일 자동으로 돌리고, 기준을 넘으면 알림을 보냅니다(dbt test, Great Expectations).</p>
+<pre class="sql run">SELECT COUNT(*)                                   AS 전체,
+       COUNT(*) - COUNT(city)                     AS city_빈값,
+       SUM(CASE WHEN TRIM(email) = '' THEN 1 ELSE 0 END) AS email_빈글자,
+       COUNT(DISTINCT email)                      AS email_종류,
+       (SELECT COUNT(*) FROM orders o
+        WHERE NOT EXISTS (SELECT 1 FROM customers c WHERE c.id = o.customer_id)) AS 고아주문
+FROM customers;</pre>
+<h3>코드 리뷰 체크리스트</h3>
+<ul>
+  <li>UPDATE/DELETE에 WHERE가 있는가? 영향 행 수를 먼저 확인했는가?</li>
+  <li>JOIN 후 행 수가 예상과 같은가? (fan-out)</li>
+  <li>NULL이 섞여도 결과가 맞는가? (<code>NOT IN</code>, <code>&lt;&gt;</code>, 평균)</li>
+  <li>GROUP BY에 빠진 열은 없는가?</li>
+  <li>WHERE 열에 함수를 씌워 인덱스를 못 쓰게 하지 않았는가?</li>
+  <li>사용자 입력은 모두 파라미터로 넘겼는가?</li>
+  <li>큰 결과에 LIMIT이나 기간 조건이 있는가?</li>
+</ul>
+
+<h2>23. DB별 차이</h2>
+<table>
+  <tr><th>기능</th><th>SQLite</th><th>PostgreSQL</th><th>MySQL</th></tr>
+  <tr><td>개수 제한</td><td><code>LIMIT n</code></td><td><code>LIMIT n</code> / <code>FETCH FIRST n ROWS ONLY</code></td><td><code>LIMIT n</code></td></tr>
+  <tr><td>문자열 잇기</td><td><code>a || b</code></td><td><code>a || b</code></td><td><code>CONCAT(a, b)</code></td></tr>
+  <tr><td>연도 뽑기</td><td><code>strftime('%Y', d)</code></td><td><code>EXTRACT(YEAR FROM d)</code></td><td><code>YEAR(d)</code></td></tr>
+  <tr><td>오늘</td><td><code>date('now')</code></td><td><code>CURRENT_DATE</code></td><td><code>CURDATE()</code></td></tr>
+  <tr><td>자동 증가 키</td><td><code>INTEGER PRIMARY KEY</code></td><td><code>GENERATED ALWAYS AS IDENTITY</code></td><td><code>AUTO_INCREMENT</code></td></tr>
+  <tr><td>UPSERT</td><td><code>ON CONFLICT … DO UPDATE</code></td><td><code>ON CONFLICT … DO UPDATE</code></td><td><code>ON DUPLICATE KEY UPDATE</code></td></tr>
+  <tr><td>대소문자 무시 검색</td><td><code>LIKE</code> (ASCII만)</td><td><code>ILIKE</code></td><td><code>LIKE</code> (콜레이션 따라)</td></tr>
+  <tr><td>참/거짓</td><td>0 / 1</td><td><code>BOOLEAN</code></td><td><code>TINYINT(1)</code></td></tr>
+  <tr><td>식별자 따옴표</td><td><code>"name"</code></td><td><code>"name"</code></td><td><code>`name`</code></td></tr>
+  <tr><td>FULL JOIN</td><td>✅ (3.39+)</td><td>✅</td><td>❌</td></tr>
+  <tr><td>자료형 검사</td><td>느슨함 (STRICT 테이블 선택)</td><td>엄격</td><td>모드에 따라</td></tr>
+</table>
+<p>BlockSQL의 블록은 연결한 DB 종류에 맞춰 이 차이를 자동으로 반영한 SQL을 만듭니다.</p>
+
+<!-- ══════════════════════ APPENDIX ══════════════════════ -->
+<section class="part">
+  <span class="tag" style="background:#6b7280">부록</span>
+  <h1>치트시트와 정답</h1>
+</section>
+
+<h2>A. 치트시트</h2>
+<pre class="sql">SELECT   [DISTINCT] 열, 집계(열) AS 별칭      -- 5. 보여줄 것
+FROM     표 별칭                              -- 1. 어디서
+[LEFT] JOIN 다른표 ON 연결조건                 -- 1. 잇기
+WHERE    행 조건                              -- 2. 행 거르기
+GROUP BY 묶을 열                              -- 3. 묶기
+HAVING   그룹 조건                            -- 4. 그룹 거르기
+ORDER BY 열 [DESC]                            -- 6. 정렬
+LIMIT    n [OFFSET m];                        -- 7. 자르기</pre>
+<div class="two">
+<table>
+  <tr><th>하고 싶은 것</th><th>쓰는 것</th></tr>
+  <tr><td>비어 있는 값 찾기</td><td><code>IS NULL</code></td></tr>
+  <tr><td>빈 값 대신 기본값</td><td><code>COALESCE(a, 0)</code></td></tr>
+  <tr><td>조건별 값</td><td><code>CASE WHEN … END</code></td></tr>
+  <tr><td>그룹별 개수</td><td><code>GROUP BY</code> + <code>COUNT(*)</code></td></tr>
+  <tr><td>집계로 거르기</td><td><code>HAVING</code></td></tr>
+  <tr><td>없는 것 찾기</td><td><code>LEFT JOIN … IS NULL</code>, <code>NOT EXISTS</code></td></tr>
+</table>
+<table>
+  <tr><th>하고 싶은 것</th><th>쓰는 것</th></tr>
+  <tr><td>순위</td><td><code>ROW_NUMBER() OVER (…)</code></td></tr>
+  <tr><td>그룹별 상위 N</td><td>순위 + 바깥 <code>WHERE rn &lt;= N</code></td></tr>
+  <tr><td>누적합</td><td><code>SUM(x) OVER (ORDER BY …)</code></td></tr>
+  <tr><td>전월 대비</td><td><code>LAG(x) OVER (ORDER BY 월)</code></td></tr>
+  <tr><td>행 → 열</td><td><code>SUM(CASE WHEN …)</code></td></tr>
+  <tr><td>긴 쿼리 정리</td><td><code>WITH 이름 AS (…)</code></td></tr>
+</table>
+</div>
+
+<h2>B. 연습문제 정답</h2>
+<p>정답은 하나가 아닙니다. 같은 결과가 나오면 맞습니다.</p>
+<h3>1.</h3>
+<pre class="sql run">SELECT name, price FROM products WHERE price &gt;= 10000 ORDER BY price DESC;</pre>
+<h3>2.</h3>
+<pre class="sql run">SELECT name FROM customers WHERE email = '';</pre>
+<h3>3.</h3>
+<pre class="sql run">SELECT id, customer_id, order_date, qty
+FROM orders
+WHERE status &lt;&gt; '취소' AND qty = 4
+ORDER BY order_date DESC
+LIMIT 5;</pre>
+<h3>4.</h3>
+<pre class="sql run">SELECT COALESCE(city, '미입력') AS city, COUNT(*) AS 고객수
+FROM customers
+GROUP BY COALESCE(city, '미입력')
+ORDER BY 고객수 DESC;</pre>
+<h3>5.</h3>
+<pre class="sql run">SELECT p.name, SUM(o.qty * p.price) AS 매출
+FROM orders o JOIN products p ON p.id = o.product_id
+WHERE o.status = '완료'
+GROUP BY p.name
+HAVING SUM(o.qty * p.price) &gt;= 300000
+ORDER BY 매출 DESC;</pre>
+<h3>6.</h3>
+<pre class="sql run">SELECT p.id, p.name
+FROM products p
+WHERE NOT EXISTS (
+  SELECT 1 FROM orders o WHERE o.product_id = p.id AND o.status = '완료'
+);</pre>
+<p>결과가 비어 있으면 모든 상품이 한 번 이상 팔린 것입니다.</p>
+<h3>7.</h3>
+<pre class="sql run">WITH s AS (
+  SELECT c.grade, c.name, SUM(o.qty * p.price) AS amount,
+         ROW_NUMBER() OVER (PARTITION BY c.grade ORDER BY SUM(o.qty * p.price) DESC) AS rn
+  FROM orders o
+  JOIN customers c ON c.id = o.customer_id
+  JOIN products p ON p.id = o.product_id
+  WHERE o.status = '완료'
+  GROUP BY c.id, c.grade, c.name
+)
+SELECT grade, name, amount FROM s WHERE rn = 1 ORDER BY amount DESC;</pre>
+<h3>8.</h3>
+<pre class="sql run">WITH m AS (SELECT substr(order_date, 1, 7) AS 월, COUNT(*) AS n FROM orders GROUP BY 1)
+SELECT 월, n AS 주문수, n - LAG(n) OVER (ORDER BY 월) AS 증감
+FROM m ORDER BY 월;</pre>
+<h3>9.</h3>
+<pre class="sql run">WITH s AS (
+  SELECT p.name, SUM(o.qty * p.price) AS 매출
+  FROM orders o JOIN products p ON p.id = o.product_id
+  WHERE o.status = '완료'
+  GROUP BY p.name
+)
+SELECT name, 매출,
+       ROUND(100.0 * 매출 / SUM(매출) OVER (), 1) AS 비중,
+       RANK() OVER (ORDER BY 매출 DESC) AS 순위
+FROM s
+ORDER BY 순위
+LIMIT 5;</pre>
+
+</body>
+</html>

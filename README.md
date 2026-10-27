@@ -52,6 +52,10 @@
   </tr>
 </table>
 
+## SQL guide (Korean)
+
+[**SQL 입문부터 실무까지** (PDF, 36 pages)](docs/SQL-Guide-ko.pdf) — from `SELECT` to window functions, indexes, isolation levels and SQL injection. All 53 examples run against the BlockSQL sample database; the result tables in the PDF are real output. Rebuild it with `npm run guide`.
+
 ## Install
 
 Download the installer for your OS from [Releases](https://github.com/Lvstw1205/blocksql/releases).
@@ -75,6 +79,7 @@ npm run dev
 | `npm test` | Tests |
 | `npm run typecheck` | Type checking |
 | `npm run package` | Installer for the current OS (in `release/`) |
+| `npm run guide` | Rebuild the SQL guide PDF (runs every example) |
 
 To publish a release: `git tag v0.1.0 && git push --tags`. GitHub Actions builds macOS, Windows and Linux installers and attaches them to the release.
 
@@ -110,6 +115,7 @@ BlockSQL은 데이터는 있는데 SQL은 아직 모르는 사람을 위한 데�
 - **코드 모드:** 직접 SQL을 쓰면 오타, 없는 열, `= NULL`, 빠진 `GROUP BY` 등을 찾아 버튼 한 번으로 고쳐요.
 - **건강검진:** 빈 값, 중복 행 등을 검사해 점수를 매겨요.
 - **안전 장치:** `UPDATE`/`DELETE`는 몇 행이 바뀌는지 먼저 보여줘요.
+- **SQL 설명서:** [SQL 입문부터 실무까지 (PDF)](docs/SQL-Guide-ko.pdf) — 예제 53개를 샘플 데이터로 직접 따라 할 수 있어요.
 
 ## License
 

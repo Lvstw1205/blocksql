@@ -35,7 +35,8 @@
     "package:mac": "npm run build && electron-builder --publish never --mac",
     "package:win": "npm run build && electron-builder --publish never --win",
     "package:linux": "npm run build && electron-builder --publish never --linux",
-    "postinstall": "node node_modules/electron/install.js"
+    "postinstall": "node node_modules/electron/install.js",
+    "guide": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/guide/build.mjs"
   },
   "dependencies": {
     "exceljs": "^4.4.0",
