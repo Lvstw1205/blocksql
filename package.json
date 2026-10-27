@@ -1,0 +1,70 @@
+{
+  "name": "blocksql",
+  "version": "0.1.0",
+  "description": "Drop in a spreadsheet, snap Scratch-style blocks together, get SQL — with built-in query checks. English and Korean UI.",
+  "keywords": [
+    "sql",
+    "sqlite",
+    "postgresql",
+    "mysql",
+    "blockly",
+    "scratch",
+    "csv",
+    "excel",
+    "electron",
+    "data"
+  ],
+  "author": "Lvstw1205",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Lvstw1205/blocksql.git"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "package": "npm run build && electron-builder --publish never",
+    "package:mac": "npm run build && electron-builder --publish never --mac",
+    "package:win": "npm run build && electron-builder --publish never --win",
+    "package:linux": "npm run build && electron-builder --publish never --linux",
+    "postinstall": "node node_modules/electron/install.js"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "mysql2": "^3.24.6",
+    "papaparse": "^5.7.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@codemirror/lang-sql": "^6.10.0",
+    "@codemirror/lint": "^6.9.7",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15",
+    "@types/node": "^24.19.2",
+    "@types/papaparse": "^5.5.2",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@uiw/react-codemirror": "^4.25.12",
+    "@vitejs/plugin-react": "^6.1.2",
+    "blockly": "^13.4.0",
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0",
+    "electron-vite": "^6.0.0",
+    "lucide-react": "^1.62.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "sql-formatter": "^15.9.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

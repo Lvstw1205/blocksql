@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4C97FF"/>
+      <stop offset="1" stop-color="#2f5fd8"/>
+    </linearGradient>
+  </defs>
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="url(#g)"/>
+  <!-- stacked blocks -->
+  <path d="M250 300h150l25 25h80l25-25h244a20 20 0 0 1 20 20v100a20 20 0 0 1-20 20H530l-25 25h-80l-25-25H250a20 20 0 0 1-20-20V320a20 20 0 0 1 20-20z" fill="#fff"/>
+  <path d="M250 480h150l25 25h80l25-25h124a20 20 0 0 1 20 20v100a20 20 0 0 1-20 20H530l-25 25h-80l-25-25H250a20 20 0 0 1-20-20V500a20 20 0 0 1 20-20z" fill="#FFAB19"/>
+  <path d="M250 660h150l25 25h80l25-25h184a20 20 0 0 1 20 20v100a20 20 0 0 1-20 20H250a20 20 0 0 1-20-20V680a20 20 0 0 1 20-20z" fill="#59C059"/>
+  <!-- check badge -->
+  <circle cx="770" cy="640" r="120" fill="#fff"/>
+  <path d="M712 642l40 40 78-84" fill="none" stroke="#16a34a" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
