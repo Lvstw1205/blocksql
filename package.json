@@ -1,6 +1,6 @@
 {
   "name": "blocksql",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Drop in a spreadsheet, snap Scratch-style blocks together, get SQL — with built-in query checks. English and Korean UI.",
   "keywords": [
     "sql",

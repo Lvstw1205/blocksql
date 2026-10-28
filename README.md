@@ -24,6 +24,7 @@
 |---|---|
 | **Spreadsheet on the left** | Drop CSV, Excel (.xlsx) or JSON files and they open as sheets. Multi-sheet workbooks become several tables. Korean CP949 CSVs and `"1,250,000"`-style numbers are read correctly. |
 | **Blocks on the right** | Snap `filter`, `group`, `sort` and `join` blocks together; the SQL is generated and runs instantly. Block order doesn't matter. |
+| **Function blocks** | Text (replace, first/last N characters, substring, find), numbers (round, round up/down, remainder, power), dates (year-month, quarter, weekday, add days/months, days between), ranks and window functions (rank, running total, previous/next row, % of total), and lists per group. Each compiles to the right syntax for SQLite, PostgreSQL and MySQL. |
 | **Sheet ↔ blocks** | Click a column header to spawn a show / filter / sort / group block for that column. |
 | **Automatic joins** | Drop in a join block and the link (`orders.customer_id = customers.id`) is filled in from foreign keys or `<table>_id` naming. |
 | **Code mode with checks** | Write SQL by hand and get inline diagnostics with **one-click fixes**: keyword typos (`FORM`), unknown tables/columns ("did you mean…"), `= NULL`, missing `GROUP BY`, trailing commas, AND/OR precedence. Plus a step-by-step explanation and database errors in plain language. |
@@ -81,7 +82,7 @@ npm run dev
 | `npm run package` | Installer for the current OS (in `release/`) |
 | `npm run guide` | Rebuild the SQL guide PDF (runs every example) |
 
-To publish a release: `git tag v0.1.0 && git push --tags`. GitHub Actions builds macOS, Windows and Linux installers and attaches them to the release.
+To publish a release: `git tag v0.2.0 && git push --tags`. GitHub Actions builds macOS, Windows and Linux installers and attaches them to the release.
 
 ## How it is built
 
@@ -112,6 +113,7 @@ BlockSQL은 데이터는 있는데 SQL은 아직 모르는 사람을 위한 데�
 
 - **왼쪽은 엑셀:** CSV·엑셀·JSON 파일을 끌어다 놓으면 시트로 열려요. 한글 CSV(CP949)도 그대로 읽어요.
 - **오른쪽은 스크래치:** `조건`·`묶기`·`정렬`·`연결` 블록을 끼우면 SQL이 만들어지고 바로 실행돼요. 시트의 열 이름을 누르면 그 열로 블록이 생겨요.
+- **함수 블록:** 글자(바꾸기, 앞·뒤 N글자, 위치 찾기), 숫자(반올림·올림·내림, 나머지, 거듭제곱), 날짜(연-월, 분기, 요일, 며칠 뒤, 며칠 차이), 순위(순위, 누적 합계, 이전·다음 행, 전체 대비 %)까지 블록으로 써요.
 - **코드 모드:** 직접 SQL을 쓰면 오타, 없는 열, `= NULL`, 빠진 `GROUP BY` 등을 찾아 버튼 한 번으로 고쳐요.
 - **건강검진:** 빈 값, 중복 행 등을 검사해 점수를 매겨요.
 - **안전 장치:** `UPDATE`/`DELETE`는 몇 행이 바뀌는지 먼저 보여줘요.

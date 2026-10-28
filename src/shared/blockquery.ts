@@ -6,19 +6,36 @@ import type { Dialect } from './types'
 import { quoteIdent, quoteString, quoteTable } from './sql'
 import { t } from './i18n'
 
-export type AggFn = 'COUNT' | 'SUM' | 'AVG' | 'MIN' | 'MAX' | 'COUNT_DISTINCT'
-export type ScalarFn = 'UPPER' | 'LOWER' | 'LENGTH' | 'TRIM' | 'ABS' | 'YEAR' | 'MONTH' | 'DAY' | 'ROUND'
+export type AggFn = 'COUNT' | 'SUM' | 'AVG' | 'MIN' | 'MAX' | 'COUNT_DISTINCT' | 'LIST'
+export type ScalarFn =
+  | 'UPPER' | 'LOWER' | 'LENGTH' | 'TRIM' | 'LTRIM' | 'RTRIM'
+  | 'ABS' | 'CEIL' | 'FLOOR' | 'SQRT' | 'ROUND' | 'TO_NUMBER' | 'TO_TEXT'
+  | 'YEAR' | 'MONTH' | 'DAY' | 'HOUR' | 'QUARTER' | 'WEEKDAY' | 'YEARMONTH' | 'DATE'
 export type CmpOp = '=' | '!=' | '>' | '>=' | '<' | '<='
+export type ArithOp = '+' | '-' | '*' | '/' | '%' | '^'
+export type DateUnit = 'day' | 'month' | 'year'
+export type RankFn = 'ROW_NUMBER' | 'RANK' | 'DENSE_RANK'
+/** running total, previous / next row's value, share of the total in percent */
+export type WindowFn = 'RUNSUM' | 'PREV' | 'NEXT' | 'PCT'
 
 export type Node =
   | { k: 'col'; table: string; name: string }
   | { k: 'num'; v: string }
   | { k: 'text'; v: string }
   | { k: 'today' }
+  | { k: 'now' }
   | { k: 'agg'; fn: AggFn; arg: Node | null }
-  | { k: 'arith'; op: '+' | '-' | '*' | '/'; a: Node | null; b: Node | null }
+  | { k: 'arith'; op: ArithOp; a: Node | null; b: Node | null }
   | { k: 'fn'; fn: ScalarFn; arg: Node | null; digits?: number }
   | { k: 'concat'; a: Node | null; b: Node | null }
+  | { k: 'replace'; a: Node | null; find: Node | null; to: Node | null }
+  | { k: 'slice'; side: 'left' | 'right'; a: Node | null; n: Node | null }
+  | { k: 'substr'; a: Node | null; start: Node | null; len: Node | null }
+  | { k: 'find'; a: Node | null; b: Node | null }
+  | { k: 'dateAdd'; a: Node | null; n: Node | null; unit: DateUnit }
+  | { k: 'dateDiff'; a: Node | null; b: Node | null }
+  | { k: 'rank'; fn: RankFn; order: Node | null; dir: 'ASC' | 'DESC'; part: Node | null }
+  | { k: 'window'; fn: WindowFn; arg: Node | null; order: Node | null; dir: 'ASC' | 'DESC'; part: Node | null }
   | { k: 'coalesce'; a: Node | null; b: Node | null }
   | { k: 'case'; cond: Node | null; then: Node | null; else: Node | null }
   | { k: 'raw'; sql: string }
@@ -79,7 +96,7 @@ export function compile(q: BlockQuery, dialect: Dialect, typeOf: ColumnTypeOf = 
 
   const wrap = (n: Node | null, parentOp: string): string => {
     const s = ex(n)
-    if (n?.k === 'arith' && parentOp !== '+' ) return `(${s})`
+    if (n?.k === 'arith' && n.op !== '^' && parentOp !== '+' && parentOp !== '^') return `(${s})`
     if (n?.k === 'logic' && n.op !== parentOp) return `(${s})`
     return s
   }
@@ -98,13 +115,20 @@ export function compile(q: BlockQuery, dialect: Dialect, typeOf: ColumnTypeOf = 
         return quoteString(n.v)
       case 'today':
         return 'CURRENT_DATE'
+      case 'now':
+        return dialect === 'sqlite' ? "datetime('now', 'localtime')" : 'CURRENT_TIMESTAMP'
       case 'agg':
         if (n.fn === 'COUNT_DISTINCT') return `COUNT(DISTINCT ${ex(n.arg)})`
         if (n.fn === 'COUNT' && !n.arg) return 'COUNT(*)'
+        if (n.fn === 'LIST') {
+          if (dialect === 'postgres') return `STRING_AGG(CAST(${ex(n.arg)} AS TEXT), ', ')`
+          return dialect === 'mysql' ? `GROUP_CONCAT(${ex(n.arg)} SEPARATOR ', ')` : `GROUP_CONCAT(${ex(n.arg)}, ', ')`
+        }
         return `${n.fn}(${ex(n.arg)})`
       case 'arith': {
         const a = wrap(n.a, n.op)
         const b = wrap(n.b, n.op)
+        if (n.op === '^') return `POWER(${a}, ${b})`
         if (n.op === '/' && dialect !== 'mysql') return `${a} * 1.0 / ${b}`
         return `${a} ${n.op} ${b}`
       }
@@ -112,6 +136,41 @@ export function compile(q: BlockQuery, dialect: Dialect, typeOf: ColumnTypeOf = 
         return scalar(n.fn, ex(n.arg), n.digits ?? 0, dialect)
       case 'concat':
         return dialect === 'mysql' ? `CONCAT(${ex(n.a)}, ${ex(n.b)})` : `${ex(n.a)} || ${ex(n.b)}`
+      case 'replace':
+        return `REPLACE(${ex(n.a)}, ${ex(n.find)}, ${ex(n.to)})`
+      case 'slice': {
+        const a = ex(n.a)
+        const len = ex(n.n)
+        if (dialect !== 'sqlite') return `${n.side === 'left' ? 'LEFT' : 'RIGHT'}(${a}, ${len})`
+        return n.side === 'left' ? `SUBSTR(${a}, 1, ${len})` : `SUBSTR(${a}, ${NUMERIC.test(len) ? '-' + len : `-(${len})`})`
+      }
+      case 'substr':
+        return `SUBSTR(${ex(n.a)}, ${ex(n.start)}, ${ex(n.len)})`
+      case 'find':
+        return dialect === 'postgres' ? `STRPOS(${ex(n.a)}, ${ex(n.b)})` : `INSTR(${ex(n.a)}, ${ex(n.b)})`
+      case 'dateAdd': {
+        const a = ex(n.a)
+        const k = ex(n.n)
+        if (dialect === 'mysql') return `DATE_ADD(${a}, INTERVAL ${k} ${n.unit.toUpperCase()})`
+        if (dialect === 'postgres') return `CAST(CAST(${a} AS DATE) + ${k} * INTERVAL '1 ${n.unit}' AS DATE)`
+        const mod = NUMERIC.test(k) ? `'${k} ${n.unit}s'` : `${k} || ' ${n.unit}s'`
+        return `DATE(${a}, ${mod})`
+      }
+      case 'dateDiff': {
+        const a = ex(n.a)
+        const b = ex(n.b)
+        if (dialect === 'mysql') return `DATEDIFF(${b}, ${a})`
+        if (dialect === 'postgres') return `(CAST(${b} AS DATE) - CAST(${a} AS DATE))`
+        return `CAST(julianday(${b}) - julianday(${a}) AS INTEGER)`
+      }
+      case 'rank':
+        return `${n.fn}() ${over(n.part, n.order, n.dir, true)}`
+      case 'window': {
+        const arg = ex(n.arg)
+        if (n.fn === 'PCT') return `${arg} * 100.0 / SUM(${arg}) ${over(n.part, null, n.dir)}`
+        const fn = { RUNSUM: 'SUM', PREV: 'LAG', NEXT: 'LEAD' }[n.fn]
+        return `${fn}(${arg}) ${over(n.part, n.order, n.dir)}`
+      }
       case 'coalesce':
         return `COALESCE(${ex(n.a)}, ${ex(n.b)})`
       case 'case':
@@ -140,6 +199,14 @@ export function compile(q: BlockQuery, dialect: Dialect, typeOf: ColumnTypeOf = 
         return `${ex(n.a)} IN (${list || '___'})`
       }
     }
+  }
+
+  /** OVER (...); the partition is optional, and so is the order unless `needsOrder` */
+  function over(part: Node | null, order: Node | null, dir: 'ASC' | 'DESC', needsOrder = false): string {
+    const parts: string[] = []
+    if (part) parts.push(`PARTITION BY ${ex(part)}`)
+    if (order || needsOrder) parts.push(`ORDER BY ${ex(order)}${dir === 'DESC' ? ' DESC' : ''}`)
+    return `OVER (${parts.join(' ')})`
   }
 
   const of = <K extends Step['k']>(k: K): Extract<Step, { k: K }>[] =>
@@ -178,8 +245,8 @@ export function compile(q: BlockQuery, dialect: Dialect, typeOf: ColumnTypeOf = 
 }
 
 function scalar(fn: ScalarFn, arg: string, digits: number, dialect: Dialect): string {
-  const part = (p: 'YEAR' | 'MONTH' | 'DAY'): string => {
-    if (dialect === 'sqlite') return `CAST(strftime('${{ YEAR: '%Y', MONTH: '%m', DAY: '%d' }[p]}', ${arg}) AS INTEGER)`
+  const part = (p: 'YEAR' | 'MONTH' | 'DAY' | 'HOUR'): string => {
+    if (dialect === 'sqlite') return `CAST(strftime('${{ YEAR: '%Y', MONTH: '%m', DAY: '%d', HOUR: '%H' }[p]}', ${arg}) AS INTEGER)`
     if (dialect === 'postgres') return `EXTRACT(${p} FROM ${arg})`
     return `${p}(${arg})`
   }
@@ -187,11 +254,28 @@ function scalar(fn: ScalarFn, arg: string, digits: number, dialect: Dialect): st
     case 'YEAR':
     case 'MONTH':
     case 'DAY':
+    case 'HOUR':
       return part(fn)
+    case 'QUARTER':
+      if (dialect === 'sqlite') return `((CAST(strftime('%m', ${arg}) AS INTEGER) + 2) / 3)`
+      return dialect === 'postgres' ? `EXTRACT(QUARTER FROM ${arg})` : `QUARTER(${arg})`
+    /** 0 = Sunday … 6 = Saturday everywhere */
+    case 'WEEKDAY':
+      if (dialect === 'sqlite') return `CAST(strftime('%w', ${arg}) AS INTEGER)`
+      return dialect === 'postgres' ? `EXTRACT(DOW FROM ${arg})` : `(DAYOFWEEK(${arg}) - 1)`
+    case 'YEARMONTH':
+      if (dialect === 'sqlite') return `strftime('%Y-%m', ${arg})`
+      return dialect === 'postgres' ? `TO_CHAR(CAST(${arg} AS DATE), 'YYYY-MM')` : `DATE_FORMAT(${arg}, '%Y-%m')`
+    case 'DATE':
+      return dialect === 'postgres' ? `CAST(${arg} AS DATE)` : `DATE(${arg})`
     case 'LENGTH':
       return dialect === 'mysql' ? `CHAR_LENGTH(${arg})` : `LENGTH(${arg})`
     case 'ROUND':
       return dialect === 'postgres' ? `ROUND(CAST(${arg} AS NUMERIC), ${digits})` : `ROUND(${arg}, ${digits})`
+    case 'TO_NUMBER':
+      return `CAST(${arg} AS ${{ sqlite: 'REAL', postgres: 'NUMERIC', mysql: 'DOUBLE' }[dialect]})`
+    case 'TO_TEXT':
+      return `CAST(${arg} AS ${dialect === 'mysql' ? 'CHAR' : 'TEXT'})`
     default:
       return `${fn}(${arg})`
   }

@@ -24,6 +24,8 @@ export function toNode(b: B): Node | null {
       return { k: 'num', v: field(b, 'V') }
     case 'sql_today':
       return { k: 'today' }
+    case 'sql_now':
+      return { k: 'now' }
     case 'sql_count_all':
       return { k: 'agg', fn: 'COUNT', arg: null }
     case 'sql_agg': {
@@ -36,11 +38,31 @@ export function toNode(b: B): Node | null {
     case 'sql_arith':
       return { k: 'arith', op: field(b, 'OP') as '+', a: n('A'), b: n('B') }
     case 'sql_fn':
+    case 'sql_text_fn':
+    case 'sql_num_fn':
+    case 'sql_date_part':
+    case 'sql_cast':
       return { k: 'fn', fn: field(b, 'FN') as 'UPPER', arg: n('ARG') }
     case 'sql_round':
       return { k: 'fn', fn: 'ROUND', arg: n('ARG'), digits: Number(field(b, 'D')) || 0 }
     case 'sql_concat':
       return { k: 'concat', a: n('A'), b: n('B') }
+    case 'sql_replace':
+      return { k: 'replace', a: n('A'), find: n('FIND'), to: n('TO') }
+    case 'sql_slice':
+      return { k: 'slice', side: field(b, 'SIDE') as 'left', a: n('A'), n: n('N') }
+    case 'sql_substr':
+      return { k: 'substr', a: n('A'), start: n('START'), len: n('LEN') }
+    case 'sql_find':
+      return { k: 'find', a: n('A'), b: n('B') }
+    case 'sql_date_add':
+      return { k: 'dateAdd', a: n('A'), n: n('N'), unit: field(b, 'UNIT') as 'day' }
+    case 'sql_date_diff':
+      return { k: 'dateDiff', a: n('A'), b: n('B') }
+    case 'sql_rank':
+      return { k: 'rank', fn: field(b, 'FN') as 'RANK', order: n('ORDER'), dir: field(b, 'DIR') as 'DESC', part: n('PART') }
+    case 'sql_window':
+      return { k: 'window', fn: field(b, 'FN') as 'RUNSUM', arg: n('ARG'), order: n('ORDER'), dir: field(b, 'DIR') as 'ASC', part: n('PART') }
     case 'sql_coalesce':
       return { k: 'coalesce', a: n('A'), b: n('B') }
     case 'sql_case':

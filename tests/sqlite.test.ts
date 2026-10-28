@@ -5,7 +5,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { SqliteDriver } from '../src/main/db/sqlite'
 import { cleanName, importSheet, readSheets } from '../src/main/importer'
 import { createSampleDb } from '../src/main/sample'
-import { compile } from '@shared/blockquery'
+import { compile, type Node, type Step } from '@shared/blockquery'
 import { buildReport, duplicateSql, profileSql } from '@shared/health'
 import { lint } from '@shared/doctor/lint'
 
@@ -117,6 +117,53 @@ describe('sample database end to end', () => {
     const r = await db.query(sql, 100)
     expect(r.columns).toEqual(['category', '매출'])
     expect(r.rows.length).toBe(5)
+  })
+
+  it('runs every function block on SQLite', async () => {
+    const c = (name: string): Node => ({ k: 'col', table: 'orders', name })
+    const num = (v: string): Node => ({ k: 'num', v })
+    const text = (v: string): Node => ({ k: 'text', v })
+    const when = text('2026-06-11 14:30:00')
+    const run = async (exprs: Node[], extra: Step[] = []): Promise<unknown[][]> => {
+      const { sql, holes } = compile({ table: 'orders', steps: [...exprs.map((expr): Step => ({ k: 'show', expr })), ...extra] }, 'sqlite')
+      expect(holes).toBe(0)
+      return (await db.query(sql, 3)).rows
+    }
+
+    const [scalars] = await run([
+      { k: 'slice', side: 'left', a: when, n: num('4') },
+      { k: 'slice', side: 'right', a: when, n: num('2') },
+      { k: 'substr', a: when, start: num('6'), len: num('2') },
+      { k: 'replace', a: text('a-b-c'), find: text('-'), to: text('') },
+      { k: 'find', a: text('me@x.io'), b: text('@') },
+      { k: 'arith', op: '^', a: num('3'), b: num('2') },
+      { k: 'arith', op: '%', a: num('7'), b: num('3') },
+      { k: 'dateAdd', a: when, n: num('1'), unit: 'month' },
+      { k: 'dateDiff', a: text('2026-06-01'), b: when },
+      ...(['LTRIM', 'HOUR', 'QUARTER', 'WEEKDAY', 'YEARMONTH', 'DATE', 'TO_NUMBER'] as const).map(
+        (fn): Node => ({ k: 'fn', fn, arg: fn === 'LTRIM' ? text('  x') : fn === 'TO_NUMBER' ? text('1.5') : when })
+      ),
+      ...(['CEIL', 'FLOOR', 'SQRT'] as const).map((fn): Node => ({ k: 'fn', fn, arg: num('2.25') }))
+    ])
+    expect(scalars).toEqual(['2026', '00', '06', 'abc', 3, 9, 1, '2026-07-11', 10, 'x', 14, 2, 4, '2026-06', '2026-06-11', 1.5, 3, 2, 1.5])
+
+    const windows = await run(
+      [
+        c('id'),
+        { k: 'rank', fn: 'ROW_NUMBER', order: c('id'), dir: 'ASC', part: null },
+        { k: 'window', fn: 'RUNSUM', arg: num('1'), order: c('id'), dir: 'ASC', part: null },
+        { k: 'window', fn: 'PREV', arg: c('id'), order: c('id'), dir: 'ASC', part: null },
+        { k: 'window', fn: 'PCT', arg: num('1'), order: null, dir: 'ASC', part: null }
+      ],
+      [{ k: 'order', expr: c('id'), dir: 'ASC' }]
+    )
+    expect(windows.slice(0, 2)).toEqual([
+      [1, 1, 1, null, 0.2],
+      [2, 2, 2, 1, 0.2]
+    ])
+
+    const [[list]] = await run([{ k: 'agg', fn: 'LIST', arg: c('status') }], [{ k: 'group', expr: c('customer_id') }])
+    expect(String(list)).toContain(', ')
   })
 
   it('health check finds the planted problems', async () => {

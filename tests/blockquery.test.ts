@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { setLang } from '@shared/i18n'
-import { compile, type BlockQuery } from '@shared/blockquery'
+import { compile, type BlockQuery, type Node } from '@shared/blockquery'
 import { buildReport, duplicateSql, profileSql } from '@shared/health'
 import type { TableInfo } from '@shared/types'
 
@@ -66,6 +66,64 @@ describe('compile', () => {
     expect(compile(q(), 'sqlite').sql).toContain("strftime('%Y', day)")
     expect(compile(q(), 'postgres').sql).toContain('EXTRACT(YEAR FROM day)')
     expect(compile(q(), 'mysql').sql).toContain('YEAR(day)')
+  })
+
+  it('compiles text, number and date functions per dialect', () => {
+    const show = (expr: Node) => (d: 'sqlite' | 'postgres' | 'mysql') =>
+      compile({ table: 'sales', steps: [{ k: 'show', expr }] }, d).sql.split('\n')[0].slice(7)
+    const n = (v: string): Node => ({ k: 'num', v })
+    const s = (v: string): Node => ({ k: 'text', v })
+
+    const right = show({ k: 'slice', side: 'right', a: col('zip'), n: n('3') })
+    expect([right('sqlite'), right('postgres'), right('mysql')]).toEqual(['SUBSTR(zip, -3)', 'RIGHT(zip, 3)', 'RIGHT(zip, 3)'])
+
+    const find = show({ k: 'find', a: col('region'), b: s('@') })
+    expect([find('sqlite'), find('postgres')]).toEqual(["INSTR(region, '@')", "STRPOS(region, '@')"])
+
+    expect(show({ k: 'replace', a: col('zip'), find: s('-'), to: s('') })('mysql')).toBe("REPLACE(zip, '-', '')")
+    expect(show({ k: 'arith', op: '^', a: col('amount'), b: n('2') })('sqlite')).toBe('POWER(amount, 2)')
+    expect(show({ k: 'arith', op: '%', a: { k: 'arith', op: '+', a: col('amount'), b: n('1') }, b: n('2') })('sqlite')).toBe('(amount + 1) % 2')
+
+    const add = show({ k: 'dateAdd', a: col('day'), n: n('-7'), unit: 'day' })
+    expect([add('sqlite'), add('postgres'), add('mysql')]).toEqual([
+      "DATE(day, '-7 days')",
+      "CAST(CAST(day AS DATE) + -7 * INTERVAL '1 day' AS DATE)",
+      'DATE_ADD(day, INTERVAL -7 DAY)'
+    ])
+    const diff = show({ k: 'dateDiff', a: col('day'), b: { k: 'today' } })
+    expect([diff('sqlite'), diff('postgres'), diff('mysql')]).toEqual([
+      'CAST(julianday(CURRENT_DATE) - julianday(day) AS INTEGER)',
+      '(CAST(CURRENT_DATE AS DATE) - CAST(day AS DATE))',
+      'DATEDIFF(CURRENT_DATE, day)'
+    ])
+    const ym = show({ k: 'fn', fn: 'YEARMONTH', arg: col('day') })
+    expect([ym('sqlite'), ym('postgres'), ym('mysql')]).toEqual([
+      "strftime('%Y-%m', day)",
+      "TO_CHAR(CAST(day AS DATE), 'YYYY-MM')",
+      "DATE_FORMAT(day, '%Y-%m')"
+    ])
+    const list = show({ k: 'agg', fn: 'LIST', arg: col('region') })
+    expect([list('sqlite'), list('postgres'), list('mysql')]).toEqual([
+      "GROUP_CONCAT(region, ', ')",
+      "STRING_AGG(CAST(region AS TEXT), ', ')",
+      "GROUP_CONCAT(region SEPARATOR ', ')"
+    ])
+  })
+
+  it('compiles rank and window functions', () => {
+    const show = (expr: Node) => compile({ table: 'sales', steps: [{ k: 'show', expr }] }, 'postgres')
+    expect(show({ k: 'rank', fn: 'RANK', order: col('amount'), dir: 'DESC', part: col('region') }).sql).toContain(
+      'RANK() OVER (PARTITION BY region ORDER BY amount DESC)'
+    )
+    expect(show({ k: 'window', fn: 'RUNSUM', arg: col('amount'), order: col('day'), dir: 'ASC', part: null }).sql).toContain(
+      'SUM(amount) OVER (ORDER BY day)'
+    )
+    expect(show({ k: 'window', fn: 'PCT', arg: col('amount'), order: null, dir: 'ASC', part: null }).sql).toContain(
+      'amount * 100.0 / SUM(amount) OVER ()'
+    )
+    // a rank needs something to order by; partition and window order are optional
+    expect(show({ k: 'rank', fn: 'ROW_NUMBER', order: null, dir: 'DESC', part: null }).holes).toBe(1)
+    expect(show({ k: 'window', fn: 'PREV', arg: col('amount'), order: null, dir: 'ASC', part: null }).holes).toBe(0)
   })
 
   it('parenthesizes mixed logic and keeps division decimal', () => {

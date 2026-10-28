@@ -12,7 +12,11 @@ export const COLOR = {
   group: '#FF8C1A',
   sort: '#9966FF',
   join: '#FFAB19',
-  value: '#CF63CF'
+  value: '#CF63CF',
+  text: '#0FBD8C',
+  date: '#FF6680',
+  rank: '#2E9E9E',
+  logic: '#5B80A5'
 }
 
 // ── schema the dropdowns read from ──────────────────────────
@@ -168,49 +172,140 @@ const value = (colour: string, build: (b: Blockly.Block) => void, output = VALUE
 })
 
 defs.sql_col = value(COLOR.column, (b) => b.appendDummyInput().appendField(dynamic(columnOptions), 'COL'))
-defs.sql_text = value(COLOR.value, (b) => b.appendDummyInput().appendField(new Blockly.FieldTextInput(''), 'V'))
+defs.sql_text = value(COLOR.text, (b) => b.appendDummyInput().appendField(new Blockly.FieldTextInput(''), 'V'))
 defs.sql_num = value(COLOR.value, (b) => b.appendDummyInput().appendField(new Blockly.FieldNumber(0), 'V'))
-defs.sql_today = value(COLOR.value, (b) => b.appendDummyInput().appendField(tr('bToday')))
 defs.sql_count_all = value(COLOR.group, (b) => b.appendDummyInput().appendField(tr('bRowCount')))
 defs.sql_agg = value(COLOR.group, (b) => {
   b.appendDummyInput().appendField(
-    menu([['bSum', 'SUM'], ['bAvg', 'AVG'], ['bMin', 'MIN'], ['bMax', 'MAX'], ['bCount', 'COUNT'], ['bCountDistinct', 'COUNT_DISTINCT']]),
-    'FN'
-  )
-  b.appendValueInput('ARG').setCheck(VALUE)
-})
-defs.sql_arith = value(COLOR.value, (b) => {
-  b.appendValueInput('A').setCheck(VALUE)
-  b.appendValueInput('B').setCheck(VALUE).appendField(new Blockly.FieldDropdown([['+', '+'], ['−', '-'], ['×', '*'], ['÷', '/']]), 'OP')
-})
-defs.sql_fn = value(COLOR.value, (b) => {
-  b.appendDummyInput().appendField(
     menu([
-      ['bYear', 'YEAR'], ['bMonth', 'MONTH'], ['bDay', 'DAY'], ['bLength', 'LENGTH'], ['bUpper', 'UPPER'], ['bLower', 'LOWER'],
-      ['bTrim', 'TRIM'], ['bAbs', 'ABS']
+      ['bSum', 'SUM'], ['bAvg', 'AVG'], ['bMin', 'MIN'], ['bMax', 'MAX'], ['bCount', 'COUNT'], ['bCountDistinct', 'COUNT_DISTINCT'],
+      ['bList', 'LIST']
     ]),
     'FN'
   )
   b.appendValueInput('ARG').setCheck(VALUE)
 })
+
+/** "[function ▾] (value)" */
+const fnBlock = (colour: string, items: [MessageKey, string][]): Def =>
+  value(colour, (b) => {
+    b.appendDummyInput().appendField(menu(items), 'FN')
+    b.appendValueInput('ARG').setCheck(VALUE)
+  })
+
+// ── text ────────────────────────────────────────────────────
+defs.sql_text_fn = fnBlock(COLOR.text, [
+  ['bUpper', 'UPPER'], ['bLower', 'LOWER'], ['bLength', 'LENGTH'], ['bTrim', 'TRIM'], ['bLtrim', 'LTRIM'], ['bRtrim', 'RTRIM']
+])
+defs.sql_concat = value(COLOR.text, (b) => {
+  b.appendValueInput('A').setCheck(VALUE)
+  b.appendValueInput('B').setCheck(VALUE).appendField(tr('bConcat'))
+})
+defs.sql_replace = value(COLOR.text, (b) => {
+  b.appendValueInput('A').setCheck(VALUE).appendField(tr('bReplaceIn'))
+  b.appendValueInput('FIND').setCheck(VALUE).appendField(tr('bReplaceFind'))
+  b.appendValueInput('TO').setCheck(VALUE).appendField(tr('bReplaceTo'))
+  if (ko()) b.appendDummyInput().appendField(tr('bReplaceTail'))
+})
+defs.sql_slice = value(COLOR.text, (b) => {
+  const side = menu([['bSliceLeft', 'left'], ['bSliceRight', 'right']])
+  if (ko()) {
+    b.appendValueInput('A').setCheck(VALUE)
+    b.appendValueInput('N').setCheck(VALUE).appendField(tr('bOf')).appendField(side, 'SIDE')
+    b.appendDummyInput().appendField(tr('bChars'))
+  } else {
+    b.appendValueInput('N').setCheck(VALUE).appendField(side, 'SIDE')
+    b.appendValueInput('A').setCheck(VALUE).appendField(tr('bChars'))
+  }
+})
+defs.sql_substr = value(COLOR.text, (b) => {
+  b.appendValueInput('A').setCheck(VALUE)
+  b.appendValueInput('START').setCheck(VALUE).appendField(tr('bSubFrom'))
+  b.appendValueInput('LEN').setCheck(VALUE).appendField(tr('bSubLen'))
+  if (ko()) b.appendDummyInput().appendField(tr('bSubTail'))
+})
+defs.sql_find = value(COLOR.text, (b) => {
+  if (ko()) {
+    b.appendValueInput('A').setCheck(VALUE)
+    b.appendValueInput('B').setCheck(VALUE).appendField(tr('bFindIn'))
+    b.appendDummyInput().appendField(tr('bFindTail'))
+  } else {
+    b.appendValueInput('B').setCheck(VALUE).appendField(tr('bFindOf'))
+    b.appendValueInput('A').setCheck(VALUE).appendField(tr('bFindIn'))
+  }
+})
+
+// ── numbers ─────────────────────────────────────────────────
+defs.sql_arith = value(COLOR.value, (b) => {
+  b.appendValueInput('A').setCheck(VALUE)
+  b.appendValueInput('B')
+    .setCheck(VALUE)
+    .appendField(new Blockly.FieldDropdown([['+', '+'], ['−', '-'], ['×', '*'], ['÷', '/'], ['%', '%'], ['^', '^']]), 'OP')
+})
+defs.sql_num_fn = fnBlock(COLOR.value, [['bAbs', 'ABS'], ['bCeil', 'CEIL'], ['bFloor', 'FLOOR'], ['bSqrt', 'SQRT']])
 defs.sql_round = value(COLOR.value, (b) => {
   b.appendValueInput('ARG').setCheck(VALUE).appendField(tr('bRound'))
   b.appendDummyInput().appendField(tr('bRoundTo')).appendField(new Blockly.FieldNumber(0, 0, 10, 1), 'D').appendField(tr('bDecimals'))
 })
-defs.sql_concat = value(COLOR.value, (b) => {
+
+// ── dates ───────────────────────────────────────────────────
+defs.sql_today = value(COLOR.date, (b) => b.appendDummyInput().appendField(tr('bToday')))
+defs.sql_now = value(COLOR.date, (b) => b.appendDummyInput().appendField(tr('bNow')))
+defs.sql_date_part = fnBlock(COLOR.date, [
+  ['bYear', 'YEAR'], ['bMonth', 'MONTH'], ['bDay', 'DAY'], ['bYearMonth', 'YEARMONTH'], ['bQuarter', 'QUARTER'],
+  ['bWeekday', 'WEEKDAY'], ['bHour', 'HOUR'], ['bDateOnly', 'DATE']
+])
+defs.sql_date_add = value(COLOR.date, (b) => {
   b.appendValueInput('A').setCheck(VALUE)
-  b.appendValueInput('B').setCheck(VALUE).appendField(tr('bConcat'))
+  b.appendValueInput('N').setCheck(VALUE).appendField('+')
+  b.appendDummyInput().appendField(menu([['bDays', 'day'], ['bMonths', 'month'], ['bYears', 'year']]), 'UNIT')
 })
-defs.sql_coalesce = value(COLOR.value, (b) => {
+defs.sql_date_diff = value(COLOR.date, (b) => {
+  b.appendValueInput('A').setCheck(VALUE).appendField(tr('bDiffFrom'))
+  b.appendValueInput('B').setCheck(VALUE).appendField(tr('bDiffTo'))
+  if (ko()) b.appendDummyInput().appendField(tr('bDiffTail'))
+})
+
+// ── rank & window ───────────────────────────────────────────
+const windowTail = (b: Blockly.Block, required: boolean): void => {
+  b.appendValueInput('ORDER').setCheck(VALUE).appendField(tr('bRankBy'))
+  b.appendDummyInput().appendField(menu(required ? [['bDesc', 'DESC'], ['bAsc', 'ASC']] : [['bAsc', 'ASC'], ['bDesc', 'DESC']]), 'DIR')
+  b.appendValueInput('PART').setCheck(VALUE).appendField(tr('bPer'))
+}
+defs.sql_rank = value(COLOR.rank, (b) => {
+  b.appendDummyInput().appendField(menu([['bRank', 'RANK'], ['bRowNumber', 'ROW_NUMBER'], ['bDenseRank', 'DENSE_RANK']]), 'FN')
+  windowTail(b, true)
+}, VALUE, 'bRankTip')
+defs.sql_window = value(COLOR.rank, (b) => {
+  const fn = menu([['bRunSum', 'RUNSUM'], ['bPrev', 'PREV'], ['bNext', 'NEXT'], ['bPct', 'PCT']])
+  if (ko()) {
+    b.appendValueInput('ARG').setCheck(VALUE)
+    b.appendDummyInput().appendField(tr('bOf')).appendField(fn, 'FN')
+  } else {
+    b.appendDummyInput().appendField(fn, 'FN')
+    b.appendValueInput('ARG').setCheck(VALUE).appendField(tr('bOf'))
+  }
+  windowTail(b, false)
+}, VALUE, 'bWindowTip')
+
+// ── logic ───────────────────────────────────────────────────
+defs.sql_coalesce = value(COLOR.logic, (b) => {
   b.appendValueInput('A').setCheck(VALUE)
   b.appendValueInput('B').setCheck(VALUE).appendField(tr('bIfEmpty'))
 })
-defs.sql_case = value(COLOR.value, (b) => {
+defs.sql_case = value(COLOR.logic, (b) => {
   b.appendValueInput('COND').setCheck(BOOL).appendField(tr('bIf'))
   b.appendValueInput('THEN').setCheck(VALUE).appendField(tr('bThen'))
   b.appendValueInput('ELSE').setCheck(VALUE).appendField(tr('bElse'))
 })
-defs.sql_raw = value(COLOR.value, (b) => b.appendDummyInput().appendField('SQL').appendField(new Blockly.FieldTextInput(''), 'SQL'), VALUE, 'bRawTip')
+defs.sql_cast = fnBlock(COLOR.logic, [['bToNumber', 'TO_NUMBER'], ['bToText', 'TO_TEXT']])
+defs.sql_raw = value(COLOR.logic, (b) => b.appendDummyInput().appendField('SQL').appendField(new Blockly.FieldTextInput(''), 'SQL'), VALUE, 'bRawTip')
+
+/** Superseded by the text / number / date blocks; kept so saved workspaces still load. */
+defs.sql_fn = fnBlock(COLOR.value, [
+  ['bYear', 'YEAR'], ['bMonth', 'MONTH'], ['bDay', 'DAY'], ['bLength', 'LENGTH'], ['bUpper', 'UPPER'], ['bLower', 'LOWER'],
+  ['bTrim', 'TRIM'], ['bAbs', 'ABS']
+])
 
 // ── conditions (word order differs between English and Korean) ──
 defs.sql_cmp = value(COLOR.filter, (b) => {
