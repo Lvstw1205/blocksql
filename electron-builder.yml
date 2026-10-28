@@ -8,11 +8,23 @@ files:
   - package.json
 asarUnpack:
   - resources/**
+afterPack: scripts/adhoc-sign.cjs
 mac:
   category: public.app-category.developer-tools
-  target: [dmg, zip]
+  target:
+    - target: dmg
+      arch: universal
+    - target: zip
+      arch: universal
+  identity: null
 win:
-  target: [nsis]
+  target:
+    - target: nsis
+      arch: x64
+    - target: portable
+      arch: x64
+portable:
+  artifactName: BlockSQL-${version}-portable.exe
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
