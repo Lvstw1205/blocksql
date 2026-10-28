@@ -82,7 +82,7 @@ npm run dev
 | `npm run package` | Installer for the current OS (in `release/`) |
 | `npm run guide` | Rebuild the SQL guide PDF (runs every example) |
 
-To publish a release: `git tag v0.2.0 && git push --tags`. GitHub Actions builds macOS, Windows and Linux installers and attaches them to the release.
+To publish a release: `git tag v0.2.1 && git push --tags`. GitHub Actions builds macOS, Windows and Linux installers and attaches them to the release.
 
 ## How it is built
 
