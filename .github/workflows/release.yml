@@ -8,7 +8,18 @@ permissions:
   contents: write
 
 jobs:
+  # One draft up front, so the three builds upload into it instead of each creating their own.
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh release view "$TAG" --repo "$REPO" > /dev/null 2>&1 || gh release create "$TAG" --repo "$REPO" --draft --title "${TAG#v}" --notes ""
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+
   package:
+    needs: draft
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
